@@ -8,7 +8,7 @@ from math import sin, cos, tan, atan, sqrt
 import time
 import copy
 import window_wrapper as ww
-# branch test
+
 
 def main():
 
@@ -27,13 +27,14 @@ def main():
 
         # Add in a slider, effectively, dividing saturation and value
         # Smart dynamic thresholding?
-        #Detect all points first, then sort by comparing to previous points
+        # Detect all points first, then sort by comparing to previous points
         # Keeps last confidence score for point
         # Replays from pandas array rather than recalculating every time
 
         _Frame = ww.WindowWrapper('frame', track_points,
-                                  fpath=base_path + steven,
-                                  marker_buffer=0.02, rsz_factor=0.5, init_frms=i_markers, hue_buffer=0.02, sat_val_buffer=0.35,
+                                  fpath=base_path + jackson,
+                                  marker_buffer=0.035, rsz_factor=0.5, init_frms=i_markers,
+                                  hue_buffer=0.05, sat_buffer=0.35, val_buffer=0.5,
                                   proximity_weight=0, testing=False, auto_color=True, data_output=True)
 
         first_frame = True

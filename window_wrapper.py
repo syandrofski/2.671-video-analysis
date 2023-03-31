@@ -71,7 +71,7 @@ def bgr2hsv(in_px):
 class WindowWrapper:
 
     def __init__(self, n, targets, init_frms=(), rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
-                 marker_buffer=0.025, hue_buffer=0.05, sat_val_buffer=0.5, testing=False, auto_select=False, auto_color=False, visualize=True,
+                 marker_buffer=0.025, hue_buffer=0.05, sat_buffer=0.5, val_buffer=0.5, testing=False, auto_select=False, auto_color=False, visualize=True,
                  data_output=False, proximity_weight=0.5):
         self.path = fpath
         self.name = n
@@ -136,7 +136,8 @@ class WindowWrapper:
         self.f_y = int(self.rsz * self.o_y)
 
         self.h_buf = hue_buffer
-        self.sv_buf = sat_val_buffer
+        self.s_buf = sat_buffer
+        self.v_buf = val_buffer
         self.prox_wt = proximity_weight
         if marker_buffer < 1:
             if self.o_x < self.o_y:
@@ -245,8 +246,8 @@ class WindowWrapper:
         for l, marker in enumerate(markers_proxy):
             temp_thresh = copy.deepcopy(marker[2])
             h_noise = int(self.h_buf*180)
-            s_noise = int(self.sv_buf*256)
-            v_noise = s_noise
+            s_noise = int(self.v_buf*256)
+            v_noise = int(self.s_buf*256)
             bottom = np.array([temp_thresh[0]-h_noise, temp_thresh[1]-s_noise, temp_thresh[2]-v_noise])
             top = np.array([temp_thresh[0]+h_noise, temp_thresh[1]+s_noise, temp_thresh[2]+v_noise])
             if bottom[0] < 0:
