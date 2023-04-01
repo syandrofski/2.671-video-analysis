@@ -96,7 +96,6 @@ class WindowWrapper:
         self.subframes = []
         self.corners = []
         self.tls = []
-        self.centers = []
         self.rsz = rsz_factor
 
         self.current_relative_marker = []
