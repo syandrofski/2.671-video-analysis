@@ -75,30 +75,36 @@ class WindowWrapper:
         self.path = fpath
         self.name = n
         self.vis = visualize
+        self.parsing = True
 
-        self.data_headers = ['x', 'y', 'rx', 'ry', 'px', 'py', 'prx', 'pry', 'H', 'S', 'V', 'Confidence', 'Buffer', 'Error Code']
+        self.data_headers = ['x', 'y', 'tlx', 'tly', 'rx', 'ry', 'sfw', 'sfl', 'px', 'py', 'prx', 'pry', 'H', 'S', 'V',
+                             'Confidence', 'Buffer', 'Projection Type', 'Error Code']
         self.x = 0      # original frame x value
         self.y = 1      # original frame y value
         self.tlx = 2    # subframe top left x value
         self.tly = 3    # subframe top left y value
         self.rx = 4     # subframe relative x value
         self.ry = 5     # subframe relative y value
-        self.px = 6     # projected absolute original frame x value for the next time step
-        self.py = 7     # projected absolute original frame x value for the next time step
-        self.prx = 8    # projected subframe x value, relative to the current timestep tlx
-        self.pry = 9    # projected subframe y value, relative to the current timestep tly
-        self.h = 10     # hue value at current timestep
-        self.s = 11     # saturation value at current timestep
-        self.v = 12     # value value at current timestep
-        self.conf = 13  # confidence value describing the strength of the selected marker based on the previous frame
+        self.sfw = 6    # subframe relative width
+        self.sfl = 7    # subframe relative length
+        self.px = 8     # projected absolute original frame x value for the next time step
+        self.py = 9     # projected absolute original frame x value for the next time step
+        self.prx = 10   # projected subframe x value, relative to the current timestep tlx
+        self.pry = 11   # projected subframe y value, relative to the current timestep tly
+        self.h = 12     # hue value at current timestep
+        self.s = 13     # saturation value at current timestep
+        self.v = 14     # value value at current timestep
+        self.conf = 15  # confidence value describing the strength of the selected marker based on the previous frame
                         # conditions, specifically the linear projection and color value
-        self.buf = 14   # subframe buffer size, only changes after obscurence
-        self.err = 15   # error code describing whether the confidence value was within an acceptable threshold, to
+        self.buf = 16   # subframe buffer size, only changes after obscurence
+        self.pt = 17    # projection type, depending on point history (0-4)
+        self.err = 18   # error code describing whether the confidence value was within an acceptable threshold, to
                         # predict obscurences
 
         self.trackers = targets
         self.adv_struct = np.zeros((1, len(self.data_headers), self.trackers))
-        self.current = np.zeros((1, len(self.data_headers), self.trackers))
+        self.current = np.zeros((len(self.data_headers), self.trackers))
+        self.last = np.zeros((len(self.data_headers), self.trackers))
         self.selections = 0
 
         self.oframe = []
@@ -159,6 +165,11 @@ class WindowWrapper:
         self.retv, self.oframe = self.cap.read()
         if self.retv:
             self.f_num += 1
+
+            self.last = np.copy(self.current)
+            self.adv_struct = np.vstack((self.adv_struct, np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))))
+            self.current = np.zeros((len(self.data_headers), self.trackers))
+
         self.frame = copy.deepcopy(self.oframe)
 
     def o2f(self, xy):
@@ -177,46 +188,74 @@ class WindowWrapper:
     def sf2o(self, tl, rxy):
         return self.f2o(self.sf2f(tl, rxy))
 
-    def subimage(self, thresholded = False):
+    def subimage(self, thresholded=False):
         # Need to use oframes in the subimage method in order to avoid picking up the red marking dots in the subimages
         self.sf_num = 0
 
-        self.corners = []
         self.subframes = []
-        self.tls = []
-        h = self.o_x
-        w = self.o_y
 
-        for entry in self.current:
+        for i in range(self.trackers):
+            self.current[self.pt, i] = self.assert_projection_type(i)
 
-            if self.current # if the current point is an error point, up the buffer by 10% and resave. That way, the buffer looks forward one frame.
-            buffer = self.m_buf
-            try:
-                tl_x = center[0] - self.m_buf
-            except:
-                tl_x = 0
+            self.project(i)
 
-            try:
-                tl_y = center[1] - self.m_buf
-            except:
-                tl_y = 0
+            if self.last[self.err, i] == 1:
+                self.current[self.buf, i] = self.current[self.buf, i] * 1.1
 
-            try:
-                br_x = center[0] + self.m_buf
-            except:
-                br_x = h - 1
+            self.current[self.tlx, i] = self.current[self.px, i] - self.current[self.buf, i]
+            self.current[self.tly, i] = self.current[self.py, i] - self.current[self.buf, i]
 
-            try:
-                br_y = center[1] + self.m_buf
-            except:
-                br_y = w - 1
+            xmin = self.current[self.tlx, i]
+            xmax = self.current[self.tlx, i] + 2*self.current[self.buf, i]
+            ymin = self.current[self.tlx, i]
+            ymax = self.current[self.tlx, i] + 2 * self.current[self.buf, i]
 
-            # X positive moving right, Y positive moving down, (0, 0) in top left
-            self.corners.append([(tl_x, tl_y), (br_x, br_y)])
-
-            self.tls.append([tl_x, tl_y])
-
-        for pair in self.corners:
             # For some reason for slicing, X and Y are switched and it's stupid
             self.subframes.append(self.oframe[pair[0][1]:pair[1][1], pair[0][0]:pair[1][0]])
-        return self.corners, self.subframes, self.tls
+
+    def assert_projection_type(self, i):
+        if self.f_num < 5:
+            return 1
+        if self.adv_struct[-1, self.pt, i] == 0 and self.adv_struct[-1, self.err, i] == 0:
+            return 0
+        err_codes = self.adv_struct[:, self.err, i]
+        if np.sum(err_codes[-5:]) == 0:
+            return 0
+        if err_codes[-1] == 0:
+            return 1
+        if np.sum(err_codes) == 1:
+            return 4
+        if np.sum(err_codes)/len(err_codes) < 0.5:
+            return 2
+        else:
+            return 3
+
+    def project(self, i):
+        if self.adv_struct.shape[0] != 1:
+            self.current[self.px, i] = self.last[self.x, i]
+            self.current[self.py, i] = self.last[self.y, i]
+
+        difference_x = np.diff(self.adv_struct[-2:, self.x, i].flatten())
+        difference_y = np.diff(self.adv_struct[-2:, self.y, i].flatten())
+
+        self.current[self.px, i] = self.last[self.x, i] + difference_x
+        self.current[self.py, i] = self.last[self.y, i] + difference_y
+
+        if self.current[self.px, i] <= 0:
+            self.current[self.px, i] = 1
+        if self.current[self.py, i] <= 0:
+            self.current[self.py, i] = 1
+        if self.current[self.px, i] >= self.o_x:
+            self.current[self.px, i] = self.o_x - 1
+        if self.current[self.py, i] >= self.o_y:
+            self.current[self.py, i] = self.o_y - 1
+
+    def repair_subframe_bounds(self, i):
+        if self.current[self.tlx, i] <= 0:
+            self.current[self.tlx, i] = 1
+        if self.current[self.tly, i] <= 0:
+            self.current[self.tly, i] = 1
+        if self.current[self.tlx, i] >= self.o_x - self.current[self.buf, i]:
+            self.current[self.tlx, i] = self.o_x - self.current[self.buf, i] - 1
+        if self.current[self.tly, i] >= self.o_y - self.current[self.buf, i]:
+            self.current[self.tly, i] = self.o_y - self.current[self.buf, i] - 1

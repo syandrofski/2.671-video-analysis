@@ -3,7 +3,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from copy import deepcopy as dc
-import window_wrapper as ww
+#import window_wrapper as ww
 
 '''
 # Define a function to compute the angle between three points
@@ -53,3 +53,8 @@ ax.set_aspect('equal')
 # Show the plot
 plt.show()
 '''
+
+a = np.array([[1, 1], [2, 2]])
+b = np.array([[[0, 0], [1, 1]]])
+c = np.vstack((b, np.reshape(a, (1, a.shape[0], a.shape[1]))))
+print(np.sum(c[1, 0:, 0])==3)
