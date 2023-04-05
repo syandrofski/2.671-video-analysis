@@ -68,6 +68,18 @@ def bgr2hsv(in_px):
     return np.array([hue, saturation, value])
 
 
+def hsv_distance(hsv1, hsv2):
+    """Calculate the color space distance between two HSV points."""
+    # Convert HSV values to 0-1 range
+    hsv1_norm = hsv1 / np.array([180, 255, 255])
+    hsv2_norm = hsv2 / np.array([180, 255, 255])
+
+    # Calculate distance between two points
+    distance = np.linalg.norm(hsv1_norm - hsv2_norm)
+
+    return distance
+
+
 class WindowWrapper:
 
     def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
@@ -77,7 +89,7 @@ class WindowWrapper:
         self.vis = visualize
         self.parsing = True
 
-        self.data_headers = ['x', 'y', 'tlx', 'tly', 'rx', 'ry', 'sfw', 'sfl', 'px', 'py', 'prx', 'pry', 'H', 'S', 'V',
+        self.data_headers = ['x', 'y', 'tlx', 'tly', 'rx', 'ry', 'sfw', 'sfl', 'px', 'py', 'prx', 'pry', 'H', 'S', 'V', 'Hull Area',
                              'Confidence', 'Buffer', 'Projection Type', 'Error Code']
         self.x = 0      # original frame x value
         self.y = 1      # original frame y value
@@ -94,11 +106,12 @@ class WindowWrapper:
         self.h = 12     # hue value at current timestep
         self.s = 13     # saturation value at current timestep
         self.v = 14     # value value at current timestep
-        self.conf = 15  # confidence value describing the strength of the selected marker based on the previous frame
+        self.hull = 15  # Hull area of the minimum enclosing hull of the best contour
+        self.conf = 16  # confidence value describing the strength of the selected marker based on the previous frame
                         # conditions, specifically the linear projection and color value
-        self.buf = 16   # subframe buffer size, only changes after obscurence
-        self.pt = 17    # projection type, depending on point history (0-4)
-        self.err = 18   # error code describing whether the confidence value was within an acceptable threshold, to
+        self.buf = 17   # subframe buffer size, only changes after obscurence
+        self.pt = 18    # projection type, depending on point history (0-4)
+        self.err = 19   # error code describing whether the confidence value was within an acceptable threshold, to
                         # predict obscurences
 
         self.trackers = targets
@@ -367,4 +380,16 @@ class WindowWrapper:
         if self.current[self.tly, i] >= self.o_y - self.current[self.buf, i]:
             self.current[self.tly, i] = self.o_y - self.current[self.buf, i] - 1
 
+    def contour_compare(self, contour):
+        c, r = cv2. minEnclosingCircle(contour)
+        hull = cv2.convexHull(contour)
+        hull_area = cv2.contourArea(hull)
+        ratio = abs(1-self.last[self.hull, self.i_tracker]/hull_area)
+        # Again. reverse y and x to pull hsv from a numpy array
+        hsv = self.sf_hsv[self.i_tracker][c[1], c[0]]
+
     def analyze_subframe(self, i):
+        self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        self.i_tracker = i
+        target_contour = max(self.contours[i], key=contour_compare)
+        self.i_tracker = -1
