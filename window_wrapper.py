@@ -71,7 +71,7 @@ def bgr2hsv(in_px):
 class WindowWrapper:
 
     def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
-                 marker_buffer=0.025, visualize=True):
+                 marker_buffer=0.025, visualize=True, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7):
         self.path = fpath
         self.name = n
         self.vis = visualize
@@ -140,6 +140,10 @@ class WindowWrapper:
         self.o_y = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.f_x = int(self.rsz * self.o_x)
         self.f_y = int(self.rsz * self.o_y)
+
+        self.h_buf = hue_buffer
+        self.s_buf = sat_buffer
+        self.v_buf = val_buffer
 
         if marker_buffer < 1:
             if self.o_x < self.o_y:
@@ -246,10 +250,36 @@ class WindowWrapper:
 
             # For some reason for slicing, X and Y are switched and it's stupid
             self.subframes.append(self.oframe[ymin:ymax, xmin:xmax])
-            self.sf_hsv.append(self.hsv[ymin:ymax, xmin:xmax])
-            self.sf_canny.append(self.canny[ymin:ymax, xmin:xmax])
+            temp_hsv = self.hsv[ymin:ymax, xmin:xmax]
+            self.sf_hsv.append(temp_hsv)
+            temp_canny = self.canny[ymin:ymax, xmin:xmax]
+            self.sf_canny.append(temp_canny)
 
-            self.hyper()
+            temp_thresh = self.update_color_threshold(i)
+            temp_range = cv2.inRange(temp_hsv, temp_thresh[0], temp_thresh[1])
+
+            self.hyper.append(np.ceil((temp_range + temp_canny)/5))
+
+    def update_color_threshold(self, i):
+        temp_thresh = (self.last[self.h, i], self.last[self.s, i], self.last[self.v, i])
+        h_noise = int(self.h_buf*180)
+        s_noise = int(self.s_buf*256)
+        v_noise = int(self.v_buf*256)
+        bottom = np.array([temp_thresh[0]-h_noise, temp_thresh[1]-s_noise, temp_thresh[2]-v_noise])
+        top = np.array([temp_thresh[0]+h_noise, temp_thresh[1]+s_noise, temp_thresh[2]+v_noise])
+        if bottom[0] < 0:
+            bottom[0] = 0
+        if bottom[1] < 0:
+            bottom[1] = 0
+        if bottom[2] < 0:
+            bottom[2] = 0
+        if top[0] > 180:
+            top[0] = 180
+        if top[1] > 256:
+            top[1] = 256
+        if top[2] > 256:
+            top[2] = 256
+        return bottom, top
 
     def assert_projection_type(self, i):
         if self.f_num < 5:
@@ -336,3 +366,5 @@ class WindowWrapper:
             self.current[self.tlx, i] = self.o_x - self.current[self.buf, i] - 1
         if self.current[self.tly, i] >= self.o_y - self.current[self.buf, i]:
             self.current[self.tly, i] = self.o_y - self.current[self.buf, i] - 1
+
+    def analyze_subframe(self, i):
