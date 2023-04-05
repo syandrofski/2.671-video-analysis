@@ -13,7 +13,7 @@ import window_wrapper as ww
 def main():
 
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-    num = 2
+    num = 5
     t1 = 'jump1_AdobeExpress.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
@@ -42,6 +42,11 @@ def main():
         while retv:
             # Capture a frame from the webcam
             retv, oframe, frame = _Frame.next_frame()
+
+            if retv:
+                _Frame.show()
+                time.sleep(5)
+                exit(4)
 
             if retv:
 

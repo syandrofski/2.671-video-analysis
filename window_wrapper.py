@@ -180,7 +180,14 @@ class WindowWrapper:
         return self.prox_wt*min_d**2 + (1-self.prox_wt)*cv2.contourArea(contour)
 
     def show(self):
-        cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
+        cv2.imshow('color', cv2.resize(self.frame, (self.f_x, self.f_y)))
+        self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        cv2.imshow(self.name, cv2.resize(cv2.Canny(self.frame, 750, 751, apertureSize=5, L2gradient=True), (self.f_x, self.f_y)))
+        cv2.imshow('reg', cv2.resize(self.frame, (self.f_x, self.f_y)))
+        while True:
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                exit(5)
 
     def get_data(self):
         if self.d_out:
