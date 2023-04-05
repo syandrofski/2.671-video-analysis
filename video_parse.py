@@ -13,7 +13,7 @@ import window_wrapper as ww
 def main():
 
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-    num = 2
+    num = 7
     t1 = 'jump1_AdobeExpress.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
@@ -30,11 +30,26 @@ def main():
         #Detect all points first, then sort by comparing to previous points
         # Keeps last confidence score for point
         # Replays from pandas array rather than recalculating every time
+        code = 2
+        if code == 0:
+            _Frame = ww.WindowWrapper('frame', track_points,
+                                      #fpath=base_path + t1,
+                                      marker_buffer=0.02, rsz_factor=0.85, init_frms=i_markers, hue_buffer=0.02,
+                                      sat_val_buffer=0.25, proximity_weight=0, testing=False, auto_color=True,
+                                      data_output=True)
+        elif code == 1:
+            _Frame = ww.WindowWrapper('frame', track_points,
+                                      fpath=base_path + t1,
+                                      marker_buffer=0.015, rsz_factor=0.85, init_frms=i_markers, hue_buffer=0.02,
+                                      sat_val_buffer=0.55, proximity_weight=0, testing=False, auto_color=True,
+                                      data_output=True)
+        else:
+            _Frame = ww.WindowWrapper('frame', track_points,
+                                      fpath=base_path + steven,
+                                      marker_buffer=0.012, rsz_factor=0.5, init_frms=i_markers, hue_buffer=0.012,
+                                      sat_val_buffer=0.35, proximity_weight=0, testing=False, auto_color=True,
+                                      data_output=True)
 
-        _Frame = ww.WindowWrapper('frame', track_points,
-                                  fpath=base_path + steven,
-                                  marker_buffer=0.02, rsz_factor=0.5, init_frms=i_markers, hue_buffer=0.02, sat_val_buffer=0.35,
-                                  proximity_weight=0, testing=False, auto_color=True, data_output=True)
 
         first_frame = True
         retv = _Frame.get_retrieval_state()
