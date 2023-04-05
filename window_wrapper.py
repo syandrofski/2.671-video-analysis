@@ -110,13 +110,16 @@ class WindowWrapper:
         self.oframe = []
         self.frame = []
         self.hsv = []
-        self.bw = []
+        self.canny = []
         self.retv = True
         self.replace = False
         self.i_tracker = -1
 
         self.contours = [[]] * self.trackers
         self.subframes = []
+        self.sf_hsv = []
+        self.sf_canny = []
+        self.hyper = []
         self.rsz = rsz_factor
 
         cv2.namedWindow(self.name)
@@ -164,7 +167,7 @@ class WindowWrapper:
 
             cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)
             cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
-        elif event == cv2.EVENT_LBUTTONDOWN and self.replace == True:
+        elif event == cv2.EVENT_LBUTTONDOWN and self.replace is True:
             x_full, y_full = self.f2o((x, y))
             # noinspection PyTypeChecker
             temp_bgr = self.frame[y_full, x_full]
@@ -194,7 +197,7 @@ class WindowWrapper:
 
         self.frame = copy.deepcopy(self.oframe)
         self.hsv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
-        self.bw = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        self.canny = cv2.Canny(cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY), 750, 751, apertureSize=5, L2gradient=True)
 
     def o2f(self, xy):
         x, y = xy
@@ -217,6 +220,9 @@ class WindowWrapper:
         self.sf_num = 0
 
         self.subframes = []
+        self.sf_hsv = []
+        self.sf_canny = []
+        self.hyper = []
 
         for i in range(self.trackers):
             self.current[self.pt, i] = self.assert_projection_type(i)
@@ -240,6 +246,10 @@ class WindowWrapper:
 
             # For some reason for slicing, X and Y are switched and it's stupid
             self.subframes.append(self.oframe[ymin:ymax, xmin:xmax])
+            self.sf_hsv.append(self.hsv[ymin:ymax, xmin:xmax])
+            self.sf_canny.append(self.canny[ymin:ymax, xmin:xmax])
+
+            self.hyper()
 
     def assert_projection_type(self, i):
         if self.f_num < 5:
