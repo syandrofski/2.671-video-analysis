@@ -33,6 +33,8 @@ def main():
 
         # Size similarities to previous contour
 
+        # Add linear interpolation for unknown regions? in post?
+
         _Frame = ww.WindowWrapper('frame', track_points,
                                   fpath=base_path + jackson,
                                   marker_buffer=0.035, rsz_factor=0.5, init_frms=i_markers,
