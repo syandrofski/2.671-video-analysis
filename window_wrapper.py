@@ -109,7 +109,11 @@ class WindowWrapper:
 
         self.oframe = []
         self.frame = []
+        self.hsv = []
+        self.bw = []
         self.retv = True
+        self.replace = False
+        self.i_tracker = -1
 
         self.contours = [[]] * self.trackers
         self.subframes = []
@@ -149,17 +153,35 @@ class WindowWrapper:
             temp_bgr = self.frame[y_full, x_full]
             temp_hsv = bgr2hsv(temp_bgr)
 
-            self.current[0, self.x, self.selections] = x_full
-            self.current[0, self.y, self.selections] = y_full
-            self.current[0, self.rx, self.selections] = x
-            self.current[0, self.ry, self.selections] = y
-            self.current[0, self.h, self.selections] = temp_hsv[0]
-            self.current[0, self.s, self.selections] = temp_hsv[1]
-            self.current[0, self.v, self.selections] = temp_hsv[2]
+            self.current[self.x, self.selections] = x_full
+            self.current[self.y, self.selections] = y_full
+            self.current[self.rx, self.selections] = x
+            self.current[self.ry, self.selections] = y
+            self.current[self.h, self.selections] = temp_hsv[0]
+            self.current[self.s, self.selections] = temp_hsv[1]
+            self.current[self.v, self.selections] = temp_hsv[2]
             self.selections += 1
 
             cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)
             cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
+        elif event == cv2.EVENT_LBUTTONDOWN and self.replace == True:
+            x_full, y_full = self.f2o((x, y))
+            # noinspection PyTypeChecker
+            temp_bgr = self.frame[y_full, x_full]
+            temp_hsv = bgr2hsv(temp_bgr)
+
+            self.current[self.x, self.i_tracker] = x_full
+            self.current[self.y, self.i_tracker] = y_full
+            self.current[self.px, self.i_tracker] = x_full
+            self.current[self.py, self.i_tracker] = y_full
+            self.current[self.rx, self.i_tracker] = x
+            self.current[self.ry, self.i_tracker] = y
+            self.current[self.h, self.i_tracker] = temp_hsv[0]
+            self.current[self.s, self.i_tracker] = temp_hsv[1]
+            self.current[self.v, self.i_tracker] = temp_hsv[2]
+
+            self.i_tracker = -1
+            self.replace = False
 
     def next_frame(self):
         self.retv, self.oframe = self.cap.read()
@@ -171,6 +193,8 @@ class WindowWrapper:
             self.current = np.zeros((len(self.data_headers), self.trackers))
 
         self.frame = copy.deepcopy(self.oframe)
+        self.hsv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
+        self.bw = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
 
     def o2f(self, xy):
         x, y = xy
@@ -197,14 +221,14 @@ class WindowWrapper:
         for i in range(self.trackers):
             self.current[self.pt, i] = self.assert_projection_type(i)
 
+            self.project(i)
+
             if self.last[self.err, i] == 1:
                 self.current[self.buf, i] = int(self.current[self.buf, i] * 1.1)
                 if self.current[self.buf, i] >= self.o_y/2:
                     self.current[self.buf, i] = int(self.o_y/2.1)
                 if self.current[self.buf, i] >= self.o_x/2:
                     self.current[self.buf, i] = int(self.o_x/2.1)
-
-            self.project(i)
 
             self.current[self.tlx, i] = int(self.current[self.px, i] - self.current[self.buf, i])
             self.current[self.tly, i] = int(self.current[self.py, i] - self.current[self.buf, i])
@@ -246,6 +270,8 @@ class WindowWrapper:
 
             self.current[self.px, i] = self.last[self.x, i] + difference_x
             self.current[self.py, i] = self.last[self.y, i] + difference_y
+
+            self.current[self.buf, i]  = self.m_buf
         elif pt == 2:
             err_codes = self.adv_struct[:, self.err, i]
             healthy = np.array(np.where(err_codes == 0))
@@ -261,11 +287,24 @@ class WindowWrapper:
 
             self.current[self.px, i] = self.last[self.x, i] + proj_x
             self.current[self.py, i] = self.last[self.y, i] + proj_y
-            self.current[self.buf, i] =
-        elif pt == 3:
-            pass
-        else:
-            pass
+
+            self.current[self.buf, i] = self.m_buf * (1 + last/10.0)
+        else: # pt == 3:
+            self.i_tracker = i
+            self.replace = True
+
+            while self.replace:
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    exit(1)
+                elif key == ord('s'):
+                    temp_pt = self.current[self.pt, i]
+                    self.current = self.last
+                    self.current[self.err, i] = 1
+                    self.current[self.pt, i] = temp_pt
+                    self.i_tracker = -1
+                    self.replace = False
+
         self.repair_projection_bounds(i)
 
     def repair_projection_bounds(self, i):
