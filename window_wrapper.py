@@ -6,9 +6,9 @@ import time
 import math
 
 
-def dist(c1, c2):
-    x1, y1 = c1
-    x2, y2 = c2
+def dist(x1, y1, x2, y2):
+    #x1, y1 = c1
+    #x2, y2 = c2
     distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
     return distance
 
@@ -384,12 +384,18 @@ class WindowWrapper:
         c, r = cv2. minEnclosingCircle(contour)
         hull = cv2.convexHull(contour)
         hull_area = cv2.contourArea(hull)
-        ratio = abs(1-self.last[self.hull, self.i_tracker]/hull_area)
+        rc, (w, h), a = cv2.minAreaRect(contour)
+        rect_area = w*h
+        area_ratio = abs(math.log10(self.last[self.hull, self.i_tracker]/rect_area))
         # Again. reverse y and x to pull hsv from a numpy array
         hsv = self.sf_hsv[self.i_tracker][c[1], c[0]]
+        last_hsv = np.array([self.last[self.h, self.i_tracker], self.last[self.s, self.i_tracker], self.last[self.s, self.i_tracker]])
+        color_dist = hsv_distance(hsv, last_hsv)
+        point_dist = dist(c[0], c[1], self.current[self.px, self.i_tracker], self.current[self.py, self.i_tracker])
 
     def analyze_subframe(self, i):
         self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         self.i_tracker = i
         target_contour = max(self.contours[i], key=contour_compare)
         self.i_tracker = -1
+        # Remember to update self.hull
