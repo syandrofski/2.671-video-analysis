@@ -167,6 +167,7 @@ class WindowWrapper:
             temp_bgr = self.frame[y_full, x_full]
             temp_hsv = bgr2hsv(temp_bgr)
             print(temp_hsv)
+            print(type(temp_bgr))
             self.relative_markers.append((x, y, temp_hsv))
             self.initial_markers.append((x_full, y_full, temp_hsv))
             cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)
