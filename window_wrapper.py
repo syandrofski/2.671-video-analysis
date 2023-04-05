@@ -197,21 +197,25 @@ class WindowWrapper:
         for i in range(self.trackers):
             self.current[self.pt, i] = self.assert_projection_type(i)
 
+            if self.last[self.err, i] == 1:
+                self.current[self.buf, i] = int(self.current[self.buf, i] * 1.1)
+                if self.current[self.buf, i] >= self.o_y/2:
+                    self.current[self.buf, i] = int(self.o_y/2.1)
+                if self.current[self.buf, i] >= self.o_x/2:
+                    self.current[self.buf, i] = int(self.o_x/2.1)
+
             self.project(i)
 
-            if self.last[self.err, i] == 1:
-                self.current[self.buf, i] = self.current[self.buf, i] * 1.1
-
-            self.current[self.tlx, i] = self.current[self.px, i] - self.current[self.buf, i]
-            self.current[self.tly, i] = self.current[self.py, i] - self.current[self.buf, i]
+            self.current[self.tlx, i] = int(self.current[self.px, i] - self.current[self.buf, i])
+            self.current[self.tly, i] = int(self.current[self.py, i] - self.current[self.buf, i])
 
             xmin = self.current[self.tlx, i]
-            xmax = self.current[self.tlx, i] + 2*self.current[self.buf, i]
+            xmax = self.current[self.tlx, i] + int(2 * self.current[self.buf, i])
             ymin = self.current[self.tlx, i]
-            ymax = self.current[self.tlx, i] + 2 * self.current[self.buf, i]
+            ymax = self.current[self.tlx, i] + int(2 * self.current[self.buf, i])
 
             # For some reason for slicing, X and Y are switched and it's stupid
-            self.subframes.append(self.oframe[pair[0][1]:pair[1][1], pair[0][0]:pair[1][0]])
+            self.subframes.append(self.oframe[ymin:ymax, xmin:xmax])
 
     def assert_projection_type(self, i):
         if self.f_num < 5:
@@ -221,26 +225,50 @@ class WindowWrapper:
         err_codes = self.adv_struct[:, self.err, i]
         if np.sum(err_codes[-5:]) == 0:
             return 0
-        if err_codes[-1] == 0:
+        if err_codes[-1] == 0 and err_codes[-2] == 0:
             return 1
-        if np.sum(err_codes) == 1:
+        if np.sum(err_codes) == len(err_codes) - 1:
             return 4
         if np.sum(err_codes)/len(err_codes) < 0.5:
             return 2
-        else:
-            return 3
+        return 3
 
     def project(self, i):
         if self.adv_struct.shape[0] != 1:
             self.current[self.px, i] = self.last[self.x, i]
             self.current[self.py, i] = self.last[self.y, i]
 
-        difference_x = np.diff(self.adv_struct[-2:, self.x, i].flatten())
-        difference_y = np.diff(self.adv_struct[-2:, self.y, i].flatten())
+        pt = self.current[self.pt, i]
 
-        self.current[self.px, i] = self.last[self.x, i] + difference_x
-        self.current[self.py, i] = self.last[self.y, i] + difference_y
+        if pt == 0 or pt == 1:
+            difference_x = np.diff(self.adv_struct[-2:, self.x, i].flatten())
+            difference_y = np.diff(self.adv_struct[-2:, self.y, i].flatten())
 
+            self.current[self.px, i] = self.last[self.x, i] + difference_x
+            self.current[self.py, i] = self.last[self.y, i] + difference_y
+        elif pt == 2:
+            err_codes = self.adv_struct[:, self.err, i]
+            healthy = np.array(np.where(err_codes == 0))
+            last = healthy[-1]
+            stl = healthy[-2]
+            span = abs(stl-last)
+
+            difference_rate_x = (self.adv_struct[last, self.x, i] - self.adv_struct[stl, self.x, i])/span
+            difference_rate_y = (self.adv_struct[last, self.y, i] - self.adv_struct[stl, self.y, i])/span
+
+            proj_x = difference_rate_x * (self.f_num - 1 - last)
+            proj_y = difference_rate_y * (self.f_num - 1 - last)
+
+            self.current[self.px, i] = self.last[self.x, i] + proj_x
+            self.current[self.py, i] = self.last[self.y, i] + proj_y
+            self.current[self.buf, i] =
+        elif pt == 3:
+            pass
+        else:
+            pass
+        self.repair_projection_bounds(i)
+
+    def repair_projection_bounds(self, i):
         if self.current[self.px, i] <= 0:
             self.current[self.px, i] = 1
         if self.current[self.py, i] <= 0:

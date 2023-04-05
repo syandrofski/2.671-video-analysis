@@ -31,6 +31,8 @@ def main():
         # Keeps last confidence score for point
         # Replays from pandas array rather than recalculating every time
 
+        # Size similarities to previous contour
+
         _Frame = ww.WindowWrapper('frame', track_points,
                                   fpath=base_path + jackson,
                                   marker_buffer=0.035, rsz_factor=0.5, init_frms=i_markers,

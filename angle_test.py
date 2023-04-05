@@ -54,7 +54,7 @@ ax.set_aspect('equal')
 plt.show()
 '''
 
-a = np.array([[1, 1], [2, 2]])
-b = np.array([[[0, 0], [1, 1]]])
-c = np.vstack((b, np.reshape(a, (1, a.shape[0], a.shape[1]))))
-print(np.sum(c[1, 0:, 0])==3)
+a = np.array([0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0])
+zeros = (np.array(np.where(np.flip(a)==0))+1)*-1
+for z in zeros:
+    print(a[z])
