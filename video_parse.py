@@ -13,7 +13,7 @@ import window_wrapper as ww
 def main():
 
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-    num = 5
+    num = 1
     t1 = 'jump1_AdobeExpress.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
@@ -32,7 +32,7 @@ def main():
         # Replays from pandas array rather than recalculating every time
 
         _Frame = ww.WindowWrapper('frame', track_points,
-                                  fpath=base_path + steven,
+                                  fpath=base_path + jackson,
                                   marker_buffer=0.02, rsz_factor=0.5, init_frms=i_markers, hue_buffer=0.02, sat_val_buffer=0.35,
                                   proximity_weight=0, testing=False, auto_color=True, data_output=True)
 

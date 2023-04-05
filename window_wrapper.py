@@ -166,6 +166,7 @@ class WindowWrapper:
             # noinspection PyTypeChecker
             temp_bgr = self.frame[y_full, x_full]
             temp_hsv = bgr2hsv(temp_bgr)
+            print(temp_hsv)
             self.relative_markers.append((x, y, temp_hsv))
             self.initial_markers.append((x_full, y_full, temp_hsv))
             cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)
@@ -180,9 +181,15 @@ class WindowWrapper:
         return self.prox_wt*min_d**2 + (1-self.prox_wt)*cv2.contourArea(contour)
 
     def show(self):
+        self.hsv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
+        test_mask = cv2.inRange(self.hsv, (95, 20, 20), (179, 150, 150))
+        canny = cv2.Canny(self.frame, 750, 751, apertureSize=5, L2gradient=True)
+        #test = canny
+        test = np.ceil((test_mask + canny)/5)
+        cv2.imshow('mask', cv2.resize(test, (self.f_x, self.f_y)))
         cv2.imshow('color', cv2.resize(self.frame, (self.f_x, self.f_y)))
-        self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        cv2.imshow(self.name, cv2.resize(cv2.Canny(self.frame, 750, 751, apertureSize=5, L2gradient=True), (self.f_x, self.f_y)))
+        #self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        #cv2.imshow(self.name, cv2.resize(cv2.Canny(self.frame, 750, 751, apertureSize=5, L2gradient=True), (self.f_x, self.f_y)))
         cv2.imshow('reg', cv2.resize(self.frame, (self.f_x, self.f_y)))
         while True:
             key = cv2.waitKey(1) & 0xFF
