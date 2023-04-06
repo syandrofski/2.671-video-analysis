@@ -108,7 +108,7 @@ def check():
 
 class WindowWrapper:
 
-    def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
+    def __init__(self, n='frame', targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
                  marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.25, val_buffer=0.25, visualize=True,
                  area_weight=0.2, color_weight=0.2, distance_weight=0.2, circularity_weight=0.2, filled_weight=0.2,
                  hyper=True, canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False):
@@ -599,6 +599,8 @@ class WindowWrapper:
 
                 cv2.rectangle(self.frame, tl, br, box_color, 1)
                 cv2.circle(self.frame, m_cent, 2, marker_color, 2)
+                if self.adv_struct.shape[2] < self.err + 1:
+                    cv2.putText(self.frame, str(int(self.adv_struct[self.f_num, -1, 0])), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
                 cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
 
             if self.debug:
@@ -691,3 +693,7 @@ class WindowWrapper:
 
     def export_data(self):
         return self.adv_struct
+
+    def set_data(self, struc):
+        self.adv_struct = struc
+        self.trackers = self.adv_struct.shape[2]

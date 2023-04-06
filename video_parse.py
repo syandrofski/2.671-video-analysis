@@ -13,8 +13,8 @@ from os.path import isfile
 
 def main():
 
-    num = 7
-    target_data_path = 'steven' + str(num)# + '-1'
+    num = 1
+    target_data_path = 'jump' + str(num)# + '-1'
     target_data_path += '.npy'
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
     data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Data Files\\'
@@ -22,7 +22,8 @@ def main():
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
-    overwrite = True
+    overwrite = False
+    play = True
 
     if not isfile(data_path + target_data_path) or overwrite:
 
@@ -46,7 +47,7 @@ def main():
         exit(99)
         '''
 
-        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.6, fpath=base_path + steven,
+        _Frame = ww.WindowWrapper(n='frame', targets=track_points, rsz_factor=0.6, fpath=base_path + jump,
                  marker_buffer=0.015, hue_buffer=0.015, sat_buffer=0.5, val_buffer=0.5, visualize=True,
                  area_weight=0.3, color_weight=0.2, distance_weight=0.2, circularity_weight=0.3, filled_weight=0,
                  hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False)
@@ -98,9 +99,13 @@ def main():
         data = _Frame.export_data()
         np.save(data_path + target_data_path, data)
     else:
-
         data = np.load(data_path + target_data_path)
-        data = proc.angles_to_hor(data)
-        print(data[:, 0, 0])
+        data = proc.angles_to_hor(data, [1])
+        res = (data[:, -1, 2:3] - data[:, -1, 0:1]) % 360
+        data = np.hstack((data, np.reshape(np.tile(res, (1, data.shape[2])), (data.shape[0], 1, data.shape[2]))))
+        if play:
+            _Frame = ww.WindowWrapper(fpath=base_path+jump)
+            _Frame.set_data(data)
+            _Frame.replay()
 if __name__ == '__main__':
     main()
