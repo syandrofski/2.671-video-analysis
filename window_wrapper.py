@@ -659,7 +659,8 @@ class WindowWrapper:
             self.current[self.hull, i] = w * h
 
     def replay(self):
-        while True:
+        cont = True
+        while cont:
             self.cap = cv2.VideoCapture(self.path)
             self.f_num = 0
             self.retv = True
@@ -672,11 +673,16 @@ class WindowWrapper:
                     while key != ord('t') and key != ord('p'):
                         key = check()
             key = check()
-            while key != ord('p'):
+            while key != ord('p') and key != ord('x'):
                 key = check()
+                if key == ord('x'):
+                    cont = False
 
     def nf_replay(self):
         self.retv, self.frame = self.cap.read()
         self.current = self.adv_struct[self.f_num]
         self.draw()
         self.f_num += 1
+
+    def export_data(self):
+        return self.adv_struct

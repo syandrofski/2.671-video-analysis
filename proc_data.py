@@ -4,16 +4,22 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 import matplotlib as plt
-from math import sin, cos, tan, atan, sqrt
+from math import sin, cos, tan, atan, sqrt, pi
 import time
 import copy
 import video_parse as vp
+import window_wrapper as ww
 
 
 def angle(xs, ys):
-    return(np.arctan(ys/xs))
+    return np.arctan2(ys, xs)*180/pi
 
-
+def angles_to_hor(adv_struct):
+    xs = adv_struct[:, 0, :]
+    ys = adv_struct[:, 0, :]
+    for i in range(xs.shape[1])
+    angs = angle(xs, ys)
+    angs = np.reshape(angs, (adv_struct.shape[0], 1, adv_struct.shape[2]))
 def main():
     pt = 3
     pts_x, pts_y = vp.track('test.mp4', 'y', pt)
@@ -23,9 +29,4 @@ def main():
             stats[i] = 0
 
 if __name__ == '__main__':
-    #main()
-    #print(angle(np.array([5]), np.array([5])))
-    test1 = np.array([[1, 2], [3, 4]])
-    test2 = np.array([5, (6, 7)])
-    print(test1.shape, test2.shape)
-    print(np.vstack((test1, test2)))
+    main()
