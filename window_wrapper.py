@@ -183,12 +183,23 @@ class WindowWrapper:
 
     def show(self):
         self.hsv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
-        test_mask = cv2.inRange(self.hsv, (95, 20, 20), (179, 150, 150))
-        canny = cv2.Canny(self.frame, 750, 751, apertureSize=5, L2gradient=True)
+        test_mask = cv2.inRange(self.hsv, (1, 1, 1), (179, 255, 255))
+        test_mask[test_mask != 0] = 1
+        canny = cv2.Canny(self.frame, 700, 751, apertureSize=5, L2gradient=True)
+        cv2.imshow('color', cv2.resize(canny, (self.f_x, self.f_y)))
+        canny[canny != 0] = 1
         #test = canny
-        test = np.ceil((test_mask + canny)/5)
-        cv2.imshow('mask', cv2.resize(test, (self.f_x, self.f_y)))
-        cv2.imshow('color', cv2.resize(self.frame, (self.f_x, self.f_y)))
+        #test = np.ceil((test_mask + canny)/5)
+        test2 = test_mask + canny
+        print(test2)
+        test2[test2 != 2] = 0
+        print(test2)
+        test2[test2 == 2] = 255
+        print(test2)
+        test2 = test2.astype(np.uint8)
+        #cv2.imshow('mask', cv2.resize(test, (self.f_x, self.f_y)))
+        cv2.imshow('mask', cv2.resize(test2, (self.f_x, self.f_y)))
+        #cv2.imshow('color', cv2.resize(self.frame, (self.f_x, self.f_y)))
         #self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         #cv2.imshow(self.name, cv2.resize(cv2.Canny(self.frame, 750, 751, apertureSize=5, L2gradient=True), (self.f_x, self.f_y)))
         cv2.imshow('reg', cv2.resize(self.frame, (self.f_x, self.f_y)))
