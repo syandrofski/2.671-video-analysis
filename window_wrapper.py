@@ -174,13 +174,13 @@ class WindowWrapper:
             temp_bgr = self.frame[y_full, x_full]
             temp_hsv = bgr2hsv(temp_bgr)
 
-            self.current[self.x, self.selections] = x_full
-            self.current[self.y, self.selections] = y_full
-            self.current[self.rx, self.selections] = x
-            self.current[self.ry, self.selections] = y
-            self.current[self.h, self.selections] = temp_hsv[0]
-            self.current[self.s, self.selections] = temp_hsv[1]
-            self.current[self.v, self.selections] = temp_hsv[2]
+            self.adv_struct[0, self.x, self.selections] = x_full
+            self.adv_struct[0, self.y, self.selections] = y_full
+            self.adv_struct[0, self.rx, self.selections] = x
+            self.adv_struct[0, self.ry, self.selections] = y
+            self.adv_struct[0, self.h, self.selections] = temp_hsv[0]
+            self.adv_struct[0, self.s, self.selections] = temp_hsv[1]
+            self.adv_struct[0, self.v, self.selections] = temp_hsv[2]
             self.selections += 1
 
             cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)
@@ -210,10 +210,7 @@ class WindowWrapper:
             self.f_num += 1
 
             self.last = np.copy(self.current)
-            if self.f_num == 1:
-                self.adv_struct = np.reshape(np.copy(self.current), (1, self.current.shape[0], self.current.shape[1]))
-            else:
-                self.adv_struct = np.vstack((self.adv_struct, np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))))
+            self.adv_struct = np.vstack((self.adv_struct, np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))))
             self.current = np.zeros((len(self.data_headers), self.trackers))
 
         self.frame = copy.deepcopy(self.oframe)
@@ -441,11 +438,14 @@ class WindowWrapper:
                 exit(0)
 
     def first_points(self):
+        self.f_num = 1
         cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
         while self.selections < self.trackers:
             key = cv2.waitKey(1)
             if key == ord('q'):
                 exit(1)
+
+        self.adv_struct = np.reshape(np.copy(self.current), (1, self.current.shape[0], self.current.shape[1]))
 
     def analyze_all_subframes(self):
         for i in range(self.trackers):

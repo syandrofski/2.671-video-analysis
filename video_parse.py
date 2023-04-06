@@ -35,18 +35,18 @@ def main():
 
         # Add linear interpolation for unknown regions? in post?
 
-        _Frame = ww.WindowWrapper('frame', track_points,
-                                  fpath=base_path + jackson,
-                                  marker_buffer=0.035, rsz_factor=0.5, init_frms=i_markers,
-                                  hue_buffer=0.05, sat_buffer=0.35, val_buffer=0.5,
-                                  proximity_weight=0, testing=False, auto_color=True, data_output=True)
+        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, # fpath=base_path + t1,
+                 marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
+                 area_weight=0.334, color_weight=0.333, distance_weight=0.333):
 
         first_frame = True
-        retv = _Frame.get_retrieval_state()
+        retv = _Frame.retv
 
         while retv:
             # Capture a frame from the webcam
-            retv, oframe, frame = _Frame.next_frame()
+            _Frame.next_frame()
+
+            if first_frame
 
             if retv:
 
