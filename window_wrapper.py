@@ -139,6 +139,7 @@ class WindowWrapper:
         self.cap = cv2.VideoCapture(self.path)
 
         # Gets an initial frame
+        self.f_num = 0
         self.next_frame()
 
         # Resets capture file
@@ -185,6 +186,7 @@ class WindowWrapper:
             self.current[self.v, self.selections] = temp_hsv[2]
             self.current[self.pt, self.selections] = 0
             self.current[self.conf, self.selections] = 1
+            self.current[self.err, self.selections] = 0
             self.selections += 1
 
             cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)
@@ -237,7 +239,7 @@ class WindowWrapper:
     def sf2o(self, tl, rxy):
         return self.f2o(self.sf2f(tl, rxy))
 
-    def subimage(self, thresholded=False):
+    def subimage(self):
         # Need to use oframes in the subimage method in order to avoid picking up the red marking dots in the subimages
         self.sf_num = 0
 
@@ -247,10 +249,6 @@ class WindowWrapper:
         self.hyper = []
 
         for i in range(self.trackers):
-            self.current[self.pt, i] = self.assert_projection_type(i)
-
-            self.project(i)
-
             if self.last[self.err, i] == 1:
                 self.current[self.buf, i] = int(self.current[self.buf, i] * 1.1)
                 if self.current[self.buf, i] >= self.o_y/2:
@@ -315,7 +313,13 @@ class WindowWrapper:
             return 2
         return 3
 
-    def project(self, i):
+    def pre_subimage_project(self):
+        for i in range(self.trackers):
+            self.current[self.pt, i] = self.assert_projection_type(i)
+
+            self.calculate_projections(i)
+
+    def calculate_projections(self, i):
         if self.adv_struct.shape[0] != 1:
             self.current[self.px, i] = self.last[self.x, i]
             self.current[self.py, i] = self.last[self.y, i]
@@ -405,16 +409,20 @@ class WindowWrapper:
 
     def analyze_subframe(self, i):
         self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
         self.i_tracker = i
         target_contour = max(self.contours[i], key=self.contour_compare)
         self.i_tracker = -1
+
         self.current[self.conf, i] = self.contour_compare(target_contour)
         (x, y), (w, h), a = cv2.minAreaRect(target_contour)
+
         self.current[self.hull, i] = w*h
         self.current[self.rx, i] = x
         self.current[self.ry, i] = y
         self.current[self.x, i] = x + self.current[self.tlx, i]
         self.current[self.y, i] = y + self.current[self.tly, i]
+
         if self.current[self.conf, i] < 0.5:
             self.current[self.err, i] = 1
 
@@ -422,6 +430,7 @@ class WindowWrapper:
         if self.vis:
             for i in range(self.trackers-1):
                 cv2.line(self.frame, (self.current[self.x, i], self.current[self.y, i]),(self.current[self.x, i+1], self.current[self.y, i+1]), (0, 0, 255), 2)
+
             for j in range(self.trackers):
                 if self.current[self.err, j] == 1:
                     marker_color = (0, 0, 255)
@@ -431,26 +440,32 @@ class WindowWrapper:
                     red = 255 - green
                     marker_color = (0, green, red)
                     box_color = (150, 150, 150)
+
                 cv2.rectangle(self.frame, (self.current[self.tlx, j], self.current[self.tly, j]),
                               (self.current[self.tlx, j] + 2*self.current[self.buf, j], self.current[self.tly, j] + 2*self.current[self.buf, j]),
                               box_color, 1)
                 cv2.circle(self.frame, (self.current[self.x, j], self.current[self.y, j]), 2, marker_color, 2)
+
             cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 exit(0)
 
-    def first_points(self):
-        self.f_num = 1
+    def get_first_points(self):
+        self.f_num = 0
         cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
+
         while self.selections < self.trackers:
             key = cv2.waitKey(1)
             if key == ord('q'):
                 exit(1)
 
-        self.adv_struct = np.reshape(np.copy(self.current), (1, self.current.shape[0], self.current.shape[1]))
+        self.subimage()
+        self.adv_struct = np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))
+        self.f_num += 1
+        self.analyze_all_subframes()
 
     def analyze_all_subframes(self):
         for i in range(self.trackers):
-            self.analyze_subframes(i)
+            self.analyze_subframe(i)
