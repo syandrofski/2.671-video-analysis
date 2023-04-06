@@ -17,9 +17,11 @@ def angle(xs, ys):
 def angles_to_hor(adv_struct):
     xs = adv_struct[:, 0, :]
     ys = adv_struct[:, 0, :]
-    for i in range(xs.shape[1])
-    angs = angle(xs, ys)
-    angs = np.reshape(angs, (adv_struct.shape[0], 1, adv_struct.shape[2]))
+    angs = np.zeros_like(xs)
+    for i in range(xs.shape[1]):
+        angs[:, i] = angle(xs[:, i], ys[:, i])
+    angs = np.reshape(angs, (xs.shape[0], 1, xs.shape[1]))
+    return np.hstack((adv_struct, angs))
 def main():
     pt = 3
     pts_x, pts_y = vp.track('test.mp4', 'y', pt)

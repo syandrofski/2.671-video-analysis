@@ -9,85 +9,98 @@ import time
 import copy
 import window_wrapper as ww
 import proc_data as proc
-
+from os.path import isfile
 
 def main():
 
-    base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
     num = 7
+    target_data_path = 'steven' + str(num)# + '-1'
+    target_data_path += '.npy'
+    base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
+    data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Data Files\\'
     jump = 'jump\\mp4\\jump' + str(num) + '.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
-    track_points = 3
+    overwrite = True
 
-    # Add in a slider, effectively, dividing saturation and value
-    # Smart dynamic thresholding?
-    # Detect all points first, then sort by comparing to previous points
-    # Keeps last confidence score for point
-    # Replays from pandas array rather than recalculating every time
+    if not isfile(data_path + target_data_path) or overwrite:
 
-    # Size similarities to previous contour
+        track_points = 3
 
-    # Add linear interpolation for unknown regions? in post?
+        # Add in a slider, effectively, dividing saturation and value
+        # Smart dynamic thresholding?
+        # Detect all points first, then sort by comparing to previous points
+        # Keeps last confidence score for point
+        # Replays from pandas array rather than recalculating every time
 
-    ''' Frame tester
-    cv2.imshow('test_frame', self.subframes[i])
-    key = cv2.waitKey(1) & 0xFF
-    while key != ord('q'):
+        # Size similarities to previous contour
+
+        # Add linear interpolation for unknown regions? in post?
+
+        ''' Frame tester
+        cv2.imshow('test_frame', self.subframes[i])
         key = cv2.waitKey(1) & 0xFF
-    exit(99)
-    '''
+        while key != ord('q'):
+            key = cv2.waitKey(1) & 0xFF
+        exit(99)
+        '''
 
-    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.6, fpath=base_path + jump,
-             marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.5, val_buffer=0.5, visualize=True,
-             area_weight=0.3, color_weight=0.2, distance_weight=0.2, circularity_weight=0.3, filled_weight=0,
-             hyper=False, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False)
+        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.6, fpath=base_path + steven,
+                 marker_buffer=0.015, hue_buffer=0.015, sat_buffer=0.5, val_buffer=0.5, visualize=True,
+                 area_weight=0.3, color_weight=0.2, distance_weight=0.2, circularity_weight=0.3, filled_weight=0,
+                 hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False)
 
-    first_frame = True
-    retv = _Frame.retv
-
-    while retv:
-        # Capture a frame from the webcam
-        _Frame.next_frame()
+        first_frame = True
         retv = _Frame.retv
 
-        if first_frame:
-            _Frame.get_first_points()
-            first_frame = False
+        while retv:
+            # Capture a frame from the webcam
+            _Frame.next_frame()
+            retv = _Frame.retv
 
-        elif retv:
-            _Frame.pre_subimage_project()
-            _Frame.subimage()
+            if first_frame:
+                _Frame.get_first_points()
+                first_frame = False
 
-            _Frame.analyze_all_subframes()
+            elif retv:
+                _Frame.pre_subimage_project()
+                _Frame.subimage()
 
-            _Frame.draw()
+                _Frame.analyze_all_subframes()
 
-            # Quit if user presses q
-            key = ww.check()
+                _Frame.draw()
 
-            '''
-            # Quit if user presses q, next frame if user presses n
-            while True:
-                key = cv2.waitKey(1)
-                if key & 0xFF == ord('q'):
-                    exit(0)
-                elif key & 0xFF == ord('n'):
-                    break
-            '''
+                # Quit if user presses q
+                key = ww.check()
 
-        else:
-            # Quit if user presses q
-            key = ww.check()
-    print('done!')
-    key = ww.check()
-    while key != ord('p'):
+                '''
+                # Quit if user presses q, next frame if user presses n
+                while True:
+                    key = cv2.waitKey(1)
+                    if key & 0xFF == ord('q'):
+                        exit(0)
+                    elif key & 0xFF == ord('n'):
+                        break
+                '''
+
+            else:
+                # Quit if user presses q
+                key = ww.check()
+        print('done!')
         key = ww.check()
+        while key != ord('p') and key != ord('x'):
+            key = ww.check()
 
-    _Frame.replay()
+        if key != ord('x'):
+            _Frame.replay()
 
-    data = _Frame.export_data()
-    proc.angles_to_hor(data)
+        data = _Frame.export_data()
+        np.save(data_path + target_data_path, data)
+    else:
+
+        data = np.load(data_path + target_data_path)
+        data = proc.angles_to_hor(data)
+        print(data[:, 0, 0])
 if __name__ == '__main__':
     main()

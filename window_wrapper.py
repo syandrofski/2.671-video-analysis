@@ -144,6 +144,7 @@ class WindowWrapper:
         self.adv_struct = np.zeros((1, len(self.data_headers), self.trackers))
         self.current = np.zeros((len(self.data_headers), self.trackers))
         self.last = np.zeros((len(self.data_headers), self.trackers))
+        self.last_healthy = np.zeros((len(self.data_headers), self.trackers))
         self.selections = 0
 
         self.oframe = []
@@ -222,7 +223,7 @@ class WindowWrapper:
             self.current[self.s, self.selections] = temp_hsv[1]
             self.current[self.v, self.selections] = temp_hsv[2]
             self.current[self.pt, self.selections] = 0
-            self.current[self.conf, self.selections] = 1
+            self.current[self.conf, self.selections] = 0.5
             self.current[self.err, self.selections] = 0
             self.selections += 1
 
@@ -256,6 +257,9 @@ class WindowWrapper:
         if self.retv:
             self.f_num += 1
 
+            for i in range(self.trackers):
+                if self.current[self.err, i] == 0:
+                    self.last_healthy[:, i] = self.current[:, i]
             self.last = np.copy(self.current)
             self.adv_struct = np.vstack((self.adv_struct, np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))))
             self.current = np.zeros((len(self.data_headers), self.trackers))
@@ -341,7 +345,7 @@ class WindowWrapper:
             '''
 
     def update_color_threshold(self, i):
-        temp_thresh = (self.last[self.h, i], self.last[self.s, i], self.last[self.v, i])
+        temp_thresh = (self.last_healthy[self.h, i], self.last_healthy[self.s, i], self.last_healthy[self.v, i])
         if self.f_num > 10:
             temp_thresh = np.mean(self.adv_struct[-10:, self.h:self.v+1, i], axis=0).flatten()
         h_noise = int(self.h_buf*180)
@@ -403,19 +407,19 @@ class WindowWrapper:
             self.current[self.buf, i]  = self.m_buf
         elif pt == 2:
             err_codes = self.adv_struct[:, self.err, i]
-            healthy = np.array(np.where(err_codes == 0))
+            healthy = np.array(np.where(err_codes == 0)).flatten()
             last = healthy[-1]
             stl = healthy[-2]
             span = abs(stl-last)
 
-            difference_rate_x = (self.adv_struct[last, self.x, i] - self.adv_struct[stl, self.x, i])/span
-            difference_rate_y = (self.adv_struct[last, self.y, i] - self.adv_struct[stl, self.y, i])/span
+            difference_rate_x = (self.adv_struct[last, self.x, i] - self.adv_struct[stl, self.x, i])/(2*span)
+            difference_rate_y = (self.adv_struct[last, self.y, i] - self.adv_struct[stl, self.y, i])/(2*span)
 
             proj_x = difference_rate_x * (self.f_num - 1 - last)
             proj_y = difference_rate_y * (self.f_num - 1 - last)
 
-            self.current[self.px, i] = self.last[self.x, i] + proj_x
-            self.current[self.py, i] = self.last[self.y, i] + proj_y
+            self.current[self.px, i] = self.last_healthy[self.x, i] + proj_x
+            self.current[self.py, i] = self.last_healthy[self.y, i] + proj_y
 
             self.current[self.buf, i] = self.m_buf * (1 + last/10.0)
         else: # pt == 3:
@@ -474,7 +478,7 @@ class WindowWrapper:
         rc, (w, h), a = mar
         rect_area = w*h
 
-        last_area = self.last[self.hull, self.i_tracker]
+        last_area = self.last_healthy[self.hull, self.i_tracker]
 
         if not rect_area == 0:
             area_ratio = rect_area/last_area
@@ -511,7 +515,7 @@ class WindowWrapper:
 
         # Again, reverse y and x to pull hsv from a numpy array
         hsv = self.sf_hsv[self.i_tracker][int(c[1]), int(c[0])]
-        last_hsv = np.array([self.last[self.h, self.i_tracker], self.last[self.s, self.i_tracker], self.last[self.s, self.i_tracker]])
+        last_hsv = np.array([self.last_healthy[self.h, self.i_tracker], self.last_healthy[self.s, self.i_tracker], self.last_healthy[self.s, self.i_tracker]])
         color_dist = 1 - hsv_distance(hsv, last_hsv)
         point_dist = dist(c[0], c[1], self.current[self.px, self.i_tracker]-self.current[self.tlx, self.i_tracker], self.current[self.py, self.i_tracker]-self.current[self.tly, self.i_tracker])
         point_dist = point_dist / self.current[self.buf, self.i_tracker]
@@ -532,6 +536,7 @@ class WindowWrapper:
         self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         self.i_tracker = i
+        target_contour = []
         try:
             target_contour = max(self.contours[i], key=self.contour_compare)#cv2.contourArea)
         except ValueError as e:
@@ -543,11 +548,10 @@ class WindowWrapper:
                 key = cv2.waitKey(1) & 0xFF
             exit(99)
             '''
-        self.i_tracker = -1
 
         self.temp = target_contour
-
         self.current[self.conf, i] = self.contour_compare(target_contour, verbose=True)
+        self.i_tracker = -1
         (x, y), (w, h), a = cv2.minAreaRect(target_contour)
 
         self.current[self.hull, i] = w*h
@@ -565,7 +569,7 @@ class WindowWrapper:
         self.current[self.s, i] = temp_hsv[1]
         self.current[self.v, i] = temp_hsv[2]
 
-        if self.current[self.conf, i] < 0.2:
+        if self.current[self.conf, i] < 0.5 * self.last_healthy[self.conf, i]:
             self.current[self.err, i] = 1
             print(self.f_num, self.current[self.conf, i])
 
@@ -581,7 +585,7 @@ class WindowWrapper:
                 br = (int(self.current[self.tlx, i] + 2 * b), int(self.current[self.tly, i] + 2 * b))
 
                 if self.trackers > 1 and i < (self.trackers - 1):
-                    cv2.line(self.frame, m_cent,(int(self.current[self.x, i+1]), int(self.current[self.y, i+1])), (0, 0, 255), 2)
+                    cv2.line(self.frame, m_cent,(int(self.current[self.x, i+1]), int(self.current[self.y, i+1])), (255, 255, 0), 2)
 
                 if self.current[self.err, i] == 1:
                     marker_color = (0, 0, 255)
@@ -599,7 +603,7 @@ class WindowWrapper:
 
             if self.debug:
                 cv2.imshow('canny', cv2.resize(self.canny, (self.f_x, self.f_y)))
-                tmp = np.copy(self.hyper[self.trackers-1])
+                tmp = np.copy(self.hyper[self.trackers-2])
                 tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
                 cv2.drawContours(tmp, [self.temp], -1, (0, 0, 255), 1)
                 cv2.imshow('hyper', cv2.resize(tmp, (250, 250)))
@@ -623,6 +627,7 @@ class WindowWrapper:
         self.current = self.current[self.current[:, self.y].argsort()]
         self.current = np.transpose(self.current)
 
+        self.last_healthy = np.copy(self.current)
         self.last = np.copy(self.current)
         self.adv_struct = np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))
         self.subimage()
