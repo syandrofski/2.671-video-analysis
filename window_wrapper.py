@@ -83,13 +83,14 @@ def hsv_distance(hsv1, hsv2):
 class WindowWrapper:
 
     def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
-                 marker_buffer=0.025, visualize=True, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7):
+                 marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
+                 area_weight=0.334, color_weight=0.333, distance_weight=0.333):
         self.path = fpath
         self.name = n
         self.vis = visualize
         self.parsing = True
 
-        self.data_headers = ['x', 'y', 'tlx', 'tly', 'rx', 'ry', 'sfw', 'sfl', 'px', 'py', 'prx', 'pry', 'H', 'S', 'V', 'Hull Area',
+        self.data_headers = ['x', 'y', 'tlx', 'tly', 'rx', 'ry', 'px', 'py', 'H', 'S', 'V', 'Hull Area',
                              'Confidence', 'Buffer', 'Projection Type', 'Error Code']
         self.x = 0      # original frame x value
         self.y = 1      # original frame y value
@@ -97,21 +98,17 @@ class WindowWrapper:
         self.tly = 3    # subframe top left y value
         self.rx = 4     # subframe relative x value
         self.ry = 5     # subframe relative y value
-        self.sfw = 6    # subframe relative width
-        self.sfl = 7    # subframe relative length
-        self.px = 8     # projected absolute original frame x value for the next time step
-        self.py = 9     # projected absolute original frame x value for the next time step
-        self.prx = 10   # projected subframe x value, relative to the current timestep tlx
-        self.pry = 11   # projected subframe y value, relative to the current timestep tly
-        self.h = 12     # hue value at current timestep
-        self.s = 13     # saturation value at current timestep
-        self.v = 14     # value value at current timestep
-        self.hull = 15  # Hull area of the minimum enclosing hull of the best contour
-        self.conf = 16  # confidence value describing the strength of the selected marker based on the previous frame
+        self.px = 6     # projected absolute original frame x value for the next time step
+        self.py = 7     # projected absolute original frame x value for the next time step
+        self.h = 8     # hue value at current timestep
+        self.s = 9     # saturation value at current timestep
+        self.v = 10     # value value at current timestep
+        self.hull = 11  # Hull area of the minimum enclosing hull of the best contour
+        self.conf = 12  # confidence value describing the strength of the selected marker based on the previous frame
                         # conditions, specifically the linear projection and color value
-        self.buf = 17   # subframe buffer size, only changes after obscurence
-        self.pt = 18    # projection type, depending on point history (0-4)
-        self.err = 19   # error code describing whether the confidence value was within an acceptable threshold, to
+        self.buf = 13   # subframe buffer size, only changes after obscurence
+        self.pt = 14    # projection type, depending on point history (0-4)
+        self.err = 15   # error code describing whether the confidence value was within an acceptable threshold, to
                         # predict obscurences
 
         self.trackers = targets
@@ -157,6 +154,10 @@ class WindowWrapper:
         self.h_buf = hue_buffer
         self.s_buf = sat_buffer
         self.v_buf = val_buffer
+
+        self.area_wt = area_weight
+        self.color_sim_wt = color_weight
+        self.point_dist_wt = distance_weight
 
         if marker_buffer < 1:
             if self.o_x < self.o_y:
@@ -209,7 +210,10 @@ class WindowWrapper:
             self.f_num += 1
 
             self.last = np.copy(self.current)
-            self.adv_struct = np.vstack((self.adv_struct, np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))))
+            if self.f_num == 1:
+                self.adv_struct = np.reshape(np.copy(self.current), (1, self.current.shape[0], self.current.shape[1]))
+            else:
+                self.adv_struct = np.vstack((self.adv_struct, np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))))
             self.current = np.zeros((len(self.data_headers), self.trackers))
 
         self.frame = copy.deepcopy(self.oframe)
@@ -390,12 +394,59 @@ class WindowWrapper:
         # Again. reverse y and x to pull hsv from a numpy array
         hsv = self.sf_hsv[self.i_tracker][c[1], c[0]]
         last_hsv = np.array([self.last[self.h, self.i_tracker], self.last[self.s, self.i_tracker], self.last[self.s, self.i_tracker]])
-        color_dist = hsv_distance(hsv, last_hsv)
+        color_dist = 1 - hsv_distance(hsv, last_hsv)
         point_dist = dist(c[0], c[1], self.current[self.px, self.i_tracker], self.current[self.py, self.i_tracker])
+        point_dist = point_dist / self.current[self.buf, self.i_tracker]
+        if point_dist > 1:
+            point_dist = 1.0
+        point_dist = 1 - point_dist
+        return (self.area_wt * area_ratio + self.color_sim_wt * color_dist + self.point_dist_wt * point_dist) / 3.0
 
     def analyze_subframe(self, i):
         self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         self.i_tracker = i
-        target_contour = max(self.contours[i], key=contour_compare)
+        target_contour = max(self.contours[i], key=self.contour_compare)
         self.i_tracker = -1
-        # Remember to update self.hull
+        self.current[self.conf, i] = self.contour_compare(target_contour)
+        (x, y), (w, h), a = cv2.minAreaRect(target_contour)
+        self.current[self.hull, i] = w*h
+        self.current[self.rx, i] = x
+        self.current[self.ry, i] = y
+        self.current[self.x, i] = x + self.current[self.tlx, i]
+        self.current[self.y, i] = y + self.current[self.tly, i]
+        if self.current[self.conf, i] < 0.5:
+            self.current[self.err, i] = 1
+
+    def draw(self):
+        if self.vis:
+            for i in range(self.trackers-1):
+                cv2.line(self.frame, (self.current[self.x, i], self.current[self.y, i]),(self.current[self.x, i+1], self.current[self.y, i+1]), (0, 0, 255), 2)
+            for j in range(self.trackers):
+                if self.current[self.err, j] == 1:
+                    marker_color = (0, 0, 255)
+                    box_color = (0, 0, 255)
+                else:
+                    green = self.current[self.conf, j] * 255
+                    red = 255 - green
+                    marker_color = (0, green, red)
+                    box_color = (150, 150, 150)
+                cv2.rectangle(self.frame, (self.current[self.tlx, j], self.current[self.tly, j]),
+                              (self.current[self.tlx, j] + 2*self.current[self.buf, j], self.current[self.tly, j] + 2*self.current[self.buf, j]),
+                              box_color, 1)
+                cv2.circle(self.frame, (self.current[self.x, j], self.current[self.y, j]), 2, marker_color, 2)
+            cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                exit(0)
+
+    def first_points(self):
+        cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
+        while self.selections < self.trackers:
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                exit(1)
+
+    def analyze_all_subframes(self):
+        for i in range(self.trackers):
+            self.analyze_subframes(i)
