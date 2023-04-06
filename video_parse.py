@@ -13,7 +13,7 @@ import window_wrapper as ww
 def main():
 
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-    num = 2
+    num = 7
     t1 = 'jump1_AdobeExpress.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
@@ -38,10 +38,10 @@ def main():
     exit(99)
     '''
 
-    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.85, # fpath=base_path + t1,
-             marker_buffer=0.015, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
-             area_weight=0.334, color_weight=0.333, distance_weight=0.333,
-             canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True)
+    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.6, fpath=base_path + t1,
+             marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.5, val_buffer=0.5, visualize=True,
+             area_weight=0.2, color_weight=0.1, distance_weight=0.1, circularity_weight=0.2, filled_weight=0.4,
+             hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False)
 
     first_frame = True
     retv = _Frame.retv
@@ -79,7 +79,8 @@ def main():
         else:
             # Quit if user presses q
             key = ww.check()
-
+    print('done!')
+    key = ww.check()
     while key != ord('p'):
         key = ww.check()
 

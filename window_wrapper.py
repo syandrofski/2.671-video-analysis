@@ -110,12 +110,14 @@ class WindowWrapper:
 
     def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
                  marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.25, val_buffer=0.25, visualize=True,
-                 area_weight=0.334, color_weight=0.333, distance_weight=0.333,
-                 canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True):
+                 area_weight=0.2, color_weight=0.2, distance_weight=0.2, circularity_weight=0.2, filled_weight=0.2,
+                 hyper=True, canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False):
         self.path = fpath
         self.name = n
         self.vis = visualize
         self.parsing = True
+        self.debug = debug
+        self.augment_canny = hyper
 
         self.data_headers = ['x', 'y', 'tlx', 'tly', 'rx', 'ry', 'px', 'py', 'H', 'S', 'V', 'Hull Area',
                              'Confidence', 'Buffer', 'Projection Type', 'Error Code']
@@ -167,6 +169,8 @@ class WindowWrapper:
         self.area_wt = area_weight
         self.color_sim_wt = color_weight
         self.point_dist_wt = distance_weight
+        self.circ_wt = circularity_weight
+        self.fill_wt = filled_weight
 
         self.canny_lower = canny_thresh1
         self.canny_upper = canny_thresh2
@@ -205,7 +209,7 @@ class WindowWrapper:
         if event == cv2.EVENT_LBUTTONDOWN and self.selections < self.trackers:
             x_full, y_full = self.f2o((x, y))
             # noinspection PyTypeChecker
-            temp_bgr = self.frame[y_full, x_full]
+            temp_bgr = self.oframe[y_full, x_full]
             temp_hsv = bgr2hsv(temp_bgr)
 
             self.current[self.x, self.selections] = x_full
@@ -288,7 +292,7 @@ class WindowWrapper:
 
         for i in range(self.trackers):
             if self.last[self.err, i] == 1:
-                self.current[self.buf, i] = int(self.current[self.buf, i] * 1.1)
+                self.current[self.buf, i] = int(self.current[self.buf, i] + 0.1 * self.m_buf)
                 if self.current[self.buf, i] >= self.o_y/2:
                     self.current[self.buf, i] = int(self.o_y/2.1)
                 if self.current[self.buf, i] >= self.o_x/2:
@@ -319,7 +323,10 @@ class WindowWrapper:
             temp_range[temp_range != 0] = 255
             #cv2.imshow('test_frame', temp_range)
 
-            temp_hyper = temp_range + temp_canny
+            if self.augment_canny:
+                temp_hyper = temp_canny + temp_range
+            else:
+                temp_hyper = np.copy(temp_canny)
             temp_hyper[temp_hyper != 0] = 255
             temp_hyper = temp_hyper.astype(np.uint8)
             self.hyper.append(temp_hyper)
@@ -335,6 +342,8 @@ class WindowWrapper:
 
     def update_color_threshold(self, i):
         temp_thresh = (self.last[self.h, i], self.last[self.s, i], self.last[self.v, i])
+        if self.f_num > 10:
+            temp_thresh = np.mean(self.adv_struct[-10:, self.h:self.v+1, i], axis=0).flatten()
         h_noise = int(self.h_buf*180)
         s_noise = int(self.s_buf*256)
         v_noise = int(self.v_buf*256)
@@ -380,12 +389,13 @@ class WindowWrapper:
         if self.adv_struct.shape[0] != 1:
             self.current[self.px, i] = self.last[self.x, i]
             self.current[self.py, i] = self.last[self.y, i]
+        #return True
 
         pt = self.current[self.pt, i]
 
         if pt == 0 or pt == 1:
-            difference_x = np.diff(self.adv_struct[-2:, self.x, i].flatten())
-            difference_y = np.diff(self.adv_struct[-2:, self.y, i].flatten())
+            difference_x = np.diff(self.adv_struct[-2:, self.x, i].flatten())/2
+            difference_y = np.diff(self.adv_struct[-2:, self.y, i].flatten())/2
 
             self.current[self.px, i] = self.last[self.x, i] + difference_x
             self.current[self.py, i] = self.last[self.y, i] + difference_y
@@ -446,12 +456,19 @@ class WindowWrapper:
         if self.current[self.tly, i] >= self.o_y - self.current[self.buf, i]:
             self.current[self.tly, i] = self.o_y - self.current[self.buf, i] - 1
 
-    def contour_compare(self, contour):
+    def contour_compare(self, contour, verbose=False):
         self.compare_tracker += 1
         c, r = cv2. minEnclosingCircle(contour)
 
         hull = cv2.convexHull(contour)
         hull_area = cv2.contourArea(hull)
+
+        if r != 0 and hull_area != 0:
+            circularity = 3.14*r**2/hull_area
+        else:
+            circularity = 0
+        if circularity > 1:
+            circularity = 1/circularity
 
         mar = cv2.minAreaRect(contour)
         rc, (w, h), a = mar
@@ -460,9 +477,25 @@ class WindowWrapper:
         last_area = self.last[self.hull, self.i_tracker]
 
         if not rect_area == 0:
-            area_ratio = 1 - abs(math.log10(rect_area/last_area))
+            area_ratio = rect_area/last_area
+            if area_ratio > 1:
+                area_ratio = 1 / area_ratio
         else:
             return 0
+
+        mini_tlx = int(c[0] - r)
+        mini_tly = int(c[1] - r)
+        mini_brx = int(c[0] + r)
+        mini_bry = int(c[1] + r)
+        corners = np.array([mini_tlx, mini_tly, mini_brx, mini_bry])
+        corners[corners < 0] = 0
+        corners[corners > 2 * self.current[self.buf, self.i_tracker]] = 2 * self.current[self.buf, self.i_tracker] - 1
+        mini_tlx = int(corners[0])
+        mini_tly = int(corners[1])
+        mini_brx = int(corners[2])
+        mini_bry = int(corners[3])
+        mini = self.hyper[self.i_tracker][mini_tly:mini_bry+1, mini_tlx:mini_brx+1]
+        pct_fill = np.count_nonzero(mini) / float(mini.size)
 
         '''
         sft = np.copy(self.subframes[0])
@@ -487,7 +520,10 @@ class WindowWrapper:
             point_dist = 1.0
         point_dist = 1 - point_dist
 
-        confidence = self.area_wt * area_ratio + self.color_sim_wt * color_dist + self.point_dist_wt * point_dist
+        if verbose and self.debug:
+            print('components;', area_ratio, color_dist, point_dist, circularity, pct_fill)
+
+        confidence = self.area_wt * area_ratio + self.color_sim_wt * color_dist + self.point_dist_wt * point_dist + self.circ_wt * circularity + self.fill_wt * pct_fill
 
         return confidence
 
@@ -496,10 +532,22 @@ class WindowWrapper:
         self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         self.i_tracker = i
-        target_contour = max(self.contours[i], key=self.contour_compare)
+        try:
+            target_contour = max(self.contours[i], key=self.contour_compare)#cv2.contourArea)
+        except ValueError as e:
+            print(e)
+            '''
+            cv2.imshow('test_frame', cv2.resize(self.hyper[i], (250, 250)))
+            key = cv2.waitKey(1) & 0xFF
+            while key != ord('q'):
+                key = cv2.waitKey(1) & 0xFF
+            exit(99)
+            '''
         self.i_tracker = -1
 
-        self.current[self.conf, i] = self.contour_compare(target_contour)
+        self.temp = target_contour
+
+        self.current[self.conf, i] = self.contour_compare(target_contour, verbose=True)
         (x, y), (w, h), a = cv2.minAreaRect(target_contour)
 
         self.current[self.hull, i] = w*h
@@ -508,8 +556,18 @@ class WindowWrapper:
         self.current[self.x, i] = x + self.current[self.tlx, i]
         self.current[self.y, i] = y + self.current[self.tly, i]
 
-        if self.current[self.conf, i] < 0.5:
+        # Switching y and x once again
+        # noinspection PyTypeChecker
+        temp_bgr = self.oframe[int(self.current[self.y, i]), int(self.current[self.x, i])]
+        temp_hsv = bgr2hsv(temp_bgr)
+
+        self.current[self.h, i] = temp_hsv[0]
+        self.current[self.s, i] = temp_hsv[1]
+        self.current[self.v, i] = temp_hsv[2]
+
+        if self.current[self.conf, i] < 0.2:
             self.current[self.err, i] = 1
+            print(self.f_num, self.current[self.conf, i])
 
         #print('error code', self.current[self.err, i])
 
@@ -537,10 +595,20 @@ class WindowWrapper:
 
                 cv2.rectangle(self.frame, tl, br, box_color, 1)
                 cv2.circle(self.frame, m_cent, 2, marker_color, 2)
+                cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
 
-            cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
+            if self.debug:
+                cv2.imshow('canny', cv2.resize(self.canny, (self.f_x, self.f_y)))
+                tmp = np.copy(self.hyper[self.trackers-1])
+                tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
+                cv2.drawContours(tmp, [self.temp], -1, (0, 0, 255), 1)
+                cv2.imshow('hyper', cv2.resize(tmp, (250, 250)))
 
-            check()
+                key = check()
+                while key != ord('n'):
+                    key = check()
+
+            key = check()
 
     def get_first_points(self):
         self.f_num = 0
@@ -606,6 +674,7 @@ class WindowWrapper:
             key = check()
             while key != ord('p'):
                 key = check()
+
     def nf_replay(self):
         self.retv, self.frame = self.cap.read()
         self.current = self.adv_struct[self.f_num]
