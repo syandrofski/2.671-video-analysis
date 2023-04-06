@@ -80,11 +80,38 @@ def hsv_distance(hsv1, hsv2):
     return distance
 
 
+def hsv_color_inverse(color):
+    """Returns the inverse of an HSV color code."""
+    # Get maximum values for H, S, and V channels
+    max_hue = 180
+    max_sat = 255
+    max_val = 255
+
+    # Invert the hue
+    inverted_hue = (color[0] + int(max_hue/2)) % max_hue
+
+    # Invert the saturation and value
+    inverted_sat = max_sat - color[1]
+    inverted_val = max_val - color[2]
+
+    # Return the inverted color
+    return np.array([inverted_hue, inverted_sat, inverted_val])
+
+
+def check():
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        exit(0)
+    else:
+        return key
+
+
 class WindowWrapper:
 
     def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
                  marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.25, val_buffer=0.25, visualize=True,
-                 area_weight=0.334, color_weight=0.333, distance_weight=0.333):
+                 area_weight=0.334, color_weight=0.333, distance_weight=0.333,
+                 canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True):
         self.path = fpath
         self.name = n
         self.vis = visualize
@@ -124,6 +151,7 @@ class WindowWrapper:
         self.retv = True
         self.replace = False
         self.i_tracker = -1
+        self.compare_tracker = 0
 
         self.contours = [[]] * self.trackers
         self.subframes = []
@@ -131,6 +159,19 @@ class WindowWrapper:
         self.sf_canny = []
         self.hyper = []
         self.rsz = rsz_factor
+
+        self.h_buf = hue_buffer
+        self.s_buf = sat_buffer
+        self.v_buf = val_buffer
+
+        self.area_wt = area_weight
+        self.color_sim_wt = color_weight
+        self.point_dist_wt = distance_weight
+
+        self.canny_lower = canny_thresh1
+        self.canny_upper = canny_thresh2
+        self.canny_ap_size = canny_apertureSize
+        self.canny_L2 = canny_L2threshold
 
         cv2.namedWindow(self.name)
         cv2.setMouseCallback(self.name, self.on_click)
@@ -151,14 +192,6 @@ class WindowWrapper:
         self.o_y = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.f_x = int(self.rsz * self.o_x)
         self.f_y = int(self.rsz * self.o_y)
-
-        self.h_buf = hue_buffer
-        self.s_buf = sat_buffer
-        self.v_buf = val_buffer
-
-        self.area_wt = area_weight
-        self.color_sim_wt = color_weight
-        self.point_dist_wt = distance_weight
 
         if marker_buffer < 1:
             if self.o_x < self.o_y:
@@ -189,8 +222,12 @@ class WindowWrapper:
             self.current[self.err, self.selections] = 0
             self.selections += 1
 
-            cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)
+            inv_hsv = hsv_color_inverse(temp_hsv)
+            inv_hsv = (int(inv_hsv[0]), int(inv_hsv[1]), int(inv_hsv[2]))
+
+            cv2.circle(self.frame, (x_full, y_full), 2, inv_hsv, 2)
             cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
+
         elif event == cv2.EVENT_LBUTTONDOWN and self.replace is True:
             x_full, y_full = self.f2o((x, y))
             # noinspection PyTypeChecker
@@ -220,8 +257,9 @@ class WindowWrapper:
             self.current = np.zeros((len(self.data_headers), self.trackers))
 
         self.frame = copy.deepcopy(self.oframe)
-        self.hsv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
-        self.canny = cv2.Canny(cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY), 750, 751, apertureSize=5, L2gradient=True)
+        if self.retv:
+            self.hsv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
+            self.canny = cv2.Canny(cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY), self.canny_lower, self.canny_upper, apertureSize=self.canny_ap_size, L2gradient=self.canny_L2)
 
     def o2f(self, xy):
         x, y = xy
@@ -273,24 +311,27 @@ class WindowWrapper:
             self.sf_hsv.append(temp_hsv)
 
             temp_canny = self.canny[ymin:ymax, xmin:xmax]
-            temp_canny[temp_canny != 0] = 1
+            temp_canny[temp_canny != 0] = 255
             self.sf_canny.append(temp_canny)
 
             temp_thresh = self.update_color_threshold(i)
             temp_range = cv2.inRange(temp_hsv, temp_thresh[0], temp_thresh[1])
-            temp_range[temp_range != 0] = 1
+            temp_range[temp_range != 0] = 255
+            #cv2.imshow('test_frame', temp_range)
 
-            temp_hyper = np.ceil((temp_range + temp_canny)/3)
+            temp_hyper = temp_range + temp_canny
+            temp_hyper[temp_hyper != 0] = 255
             temp_hyper = temp_hyper.astype(np.uint8)
             self.hyper.append(temp_hyper)
-            print(temp_hyper)
 
-            cv2.imshow('test_frame', self.hyper[i])
+            '''
+            #cv2.imshow('test_frame', self.hyper[i])
             key = cv2.waitKey(1) & 0xFF
             while key != ord('n') and key != ord('q'):
                 key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 exit(201)
+            '''
 
     def update_color_threshold(self, i):
         temp_thresh = (self.last[self.h, i], self.last[self.s, i], self.last[self.v, i])
@@ -406,35 +447,52 @@ class WindowWrapper:
             self.current[self.tly, i] = self.o_y - self.current[self.buf, i] - 1
 
     def contour_compare(self, contour):
+        self.compare_tracker += 1
         c, r = cv2. minEnclosingCircle(contour)
 
         hull = cv2.convexHull(contour)
         hull_area = cv2.contourArea(hull)
 
-        rc, (w, h), a = cv2.minAreaRect(contour)
+        mar = cv2.minAreaRect(contour)
+        rc, (w, h), a = mar
         rect_area = w*h
 
+        last_area = self.last[self.hull, self.i_tracker]
+
         if not rect_area == 0:
-            area_ratio = abs(math.log10(self.last[self.hull, self.i_tracker]/rect_area))
+            area_ratio = 1 - abs(math.log10(rect_area/last_area))
         else:
-            area_ratio = 0
+            return 0
+
+        '''
+        sft = np.copy(self.subframes[0])
+        cv2.drawContours(sft, [contour, np.int0(cv2.boxPoints(mar))], -1, (0, 0, 255), 2)
+        cv2.circle(sft, (int(c[0]), int(c[1])), int(r), (255, 0, 0), 2)
+        cv2.imshow('test_frame', cv2.resize(sft, (250, 250)))
+        key = cv2.waitKey(1) & 0xFF
+        while key != ord('n') and key != ord('q'):
+            key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            exit(301)
+        '''
 
         # Again, reverse y and x to pull hsv from a numpy array
-        print(self.hsv[0])
-        exit(99)
-        hsv = self.sf_hsv[self.i_tracker][c[1], c[0]]
+        hsv = self.sf_hsv[self.i_tracker][int(c[1]), int(c[0])]
         last_hsv = np.array([self.last[self.h, self.i_tracker], self.last[self.s, self.i_tracker], self.last[self.s, self.i_tracker]])
         color_dist = 1 - hsv_distance(hsv, last_hsv)
-        point_dist = dist(c[0], c[1], self.current[self.px, self.i_tracker], self.current[self.py, self.i_tracker])
+        point_dist = dist(c[0], c[1], self.current[self.px, self.i_tracker]-self.current[self.tlx, self.i_tracker], self.current[self.py, self.i_tracker]-self.current[self.tly, self.i_tracker])
         point_dist = point_dist / self.current[self.buf, self.i_tracker]
 
         if point_dist > 1:
             point_dist = 1.0
         point_dist = 1 - point_dist
 
-        return (self.area_wt * area_ratio + self.color_sim_wt * color_dist + self.point_dist_wt * point_dist) / 3.0
+        confidence = self.area_wt * area_ratio + self.color_sim_wt * color_dist + self.point_dist_wt * point_dist
+
+        return confidence
 
     def analyze_subframe(self, i):
+        self.compare_tracker = 0
         self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         self.i_tracker = i
@@ -453,32 +511,36 @@ class WindowWrapper:
         if self.current[self.conf, i] < 0.5:
             self.current[self.err, i] = 1
 
+        #print('error code', self.current[self.err, i])
+
     def draw(self):
         if self.vis:
-            if self.trackers > 1:
-                for i in range(self.trackers-1):
-                    cv2.line(self.frame, (self.current[self.x, i], self.current[self.y, i]),(self.current[self.x, i+1], self.current[self.y, i+1]), (0, 0, 255), 2)
+            for i in range(self.trackers):
 
-            for j in range(self.trackers):
-                if self.current[self.err, j] == 1:
+                m_cent = (int(self.current[self.x, i]), int(self.current[self.y, i]))
+                b = int(self.current[self.buf, i])
+                tl = (int(self.current[self.tlx, i]), int(self.current[self.tly, i]))
+                br = (int(self.current[self.tlx, i] + 2 * b), int(self.current[self.tly, i] + 2 * b))
+
+                if self.trackers > 1 and i < (self.trackers - 1):
+                    cv2.line(self.frame, m_cent,(int(self.current[self.x, i+1]), int(self.current[self.y, i+1])), (0, 0, 255), 2)
+
+                if self.current[self.err, i] == 1:
                     marker_color = (0, 0, 255)
                     box_color = (0, 0, 255)
                 else:
-                    green = self.current[self.conf, j] * 255
+                    green = self.current[self.conf, i] * 255
                     red = 255 - green
                     marker_color = (0, green, red)
                     box_color = (150, 150, 150)
 
-                cv2.rectangle(self.frame, (self.current[self.tlx, j], self.current[self.tly, j]),
-                              (self.current[self.tlx, j] + 2*self.current[self.buf, j], self.current[self.tly, j] + 2*self.current[self.buf, j]),
-                              box_color, 1)
-                cv2.circle(self.frame, (self.current[self.x, j], self.current[self.y, j]), 2, marker_color, 2)
+
+                cv2.rectangle(self.frame, tl, br, box_color, 1)
+                cv2.circle(self.frame, m_cent, 2, marker_color, 2)
 
             cv2.imshow(self.name, cv2.resize(self.frame, (self.f_x, self.f_y)))
 
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                exit(0)
+            check()
 
     def get_first_points(self):
         self.f_num = 0
@@ -489,6 +551,12 @@ class WindowWrapper:
             if key == ord('q'):
                 exit(1)
 
+        self.current = np.transpose(self.current)
+        self.current = self.current[self.current[:, self.y].argsort()]
+        self.current = np.transpose(self.current)
+
+        self.last = np.copy(self.current)
+        self.adv_struct = np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))
         self.subimage()
         self.get_hulls_initial()
         self.last = np.copy(self.current)
@@ -507,6 +575,7 @@ class WindowWrapper:
                 print('Point ' + str(i + 1) + ' did not contain a representative marker. Please reselect.')
                 exit(101)
             target_contour = max(self.contours[i], key=cv2.contourArea)
+            '''
             cv2.imshow('test_frame', self.hyper[i])
             #print(len(self.contours[i]))
             print('at hypers2')
@@ -514,8 +583,31 @@ class WindowWrapper:
             key = cv2.waitKey(1) & 0xFF
             while key != ord('q'):
                 key = cv2.waitKey(1) & 0xFF
-            exit(99)
+            exit(102)
+            '''
 
             _, (w, h), _ = cv2.minAreaRect(target_contour)
 
             self.current[self.hull, i] = w * h
+
+    def replay(self):
+        while True:
+            self.cap = cv2.VideoCapture(self.path)
+            self.f_num = 0
+            self.retv = True
+            while self.retv and self.f_num < self.adv_struct.shape[0]:
+                self.nf_replay()
+                key = check()
+                if key == ord('t'):
+                    key = ord('a')
+                    time.sleep(0.01)
+                    while key != ord('t') and key != ord('p'):
+                        key = check()
+            key = check()
+            while key != ord('p'):
+                key = check()
+    def nf_replay(self):
+        self.retv, self.frame = self.cap.read()
+        self.current = self.adv_struct[self.f_num]
+        self.draw()
+        self.f_num += 1

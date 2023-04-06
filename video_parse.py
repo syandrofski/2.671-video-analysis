@@ -20,77 +20,70 @@ def main():
 
     track_points = 3
 
-    while True:
+    # Add in a slider, effectively, dividing saturation and value
+    # Smart dynamic thresholding?
+    # Detect all points first, then sort by comparing to previous points
+    # Keeps last confidence score for point
+    # Replays from pandas array rather than recalculating every time
 
-        # Add in a slider, effectively, dividing saturation and value
-        # Smart dynamic thresholding?
-        # Detect all points first, then sort by comparing to previous points
-        # Keeps last confidence score for point
-        # Replays from pandas array rather than recalculating every time
+    # Size similarities to previous contour
 
-        # Size similarities to previous contour
+    # Add linear interpolation for unknown regions? in post?
 
-        # Add linear interpolation for unknown regions? in post?
-
-        ''' Frame tester
-        cv2.imshow('test_frame', self.subframes[i])
+    ''' Frame tester
+    cv2.imshow('test_frame', self.subframes[i])
+    key = cv2.waitKey(1) & 0xFF
+    while key != ord('q'):
         key = cv2.waitKey(1) & 0xFF
-        while key != ord('q'):
-            key = cv2.waitKey(1) & 0xFF
-        exit(99)
-        '''
+    exit(99)
+    '''
 
-        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.85, # fpath=base_path + t1,
-                 marker_buffer=0.015, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
-                 area_weight=0.334, color_weight=0.333, distance_weight=0.333)
+    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.85, # fpath=base_path + t1,
+             marker_buffer=0.015, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
+             area_weight=0.334, color_weight=0.333, distance_weight=0.333,
+             canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True)
 
-        first_frame = True
+    first_frame = True
+    retv = _Frame.retv
+
+    while retv:
+        # Capture a frame from the webcam
+        _Frame.next_frame()
         retv = _Frame.retv
 
-        while retv:
-            # Capture a frame from the webcam
-            _Frame.next_frame()
-
-            if first_frame:
-                _Frame.get_first_points()
-                first_frame = False
-
-            elif retv:
-                _Frame.pre_subimage_project()
-                _Frame.subimage()
-
-                _Frame.analyze_all_subframes()
-
-                _Frame.draw()
-
-                # Quit if user presses q
-                key = cv2.waitKey(1)
-                if key & 0xFF == ord('q'):
-                    exit(0)
-
-                '''
-                # Quit if user presses q, next frame if user presses n
-                while True:
-                    key = cv2.waitKey(1)
-                    if key & 0xFF == ord('q'):
-                        exit(0)
-                    elif key & 0xFF == ord('n'):
-                        break
-                '''
-
-            else:
-                # Quit if user presses q
-                key = cv2.waitKey(1)
-                if key & 0xFF == ord('q'):
-                    exit(0)
-
+        if first_frame:
+            _Frame.get_first_points()
             first_frame = False
 
-        key = cv2.waitKey(1) & 0xFF
-        while key != ord('q') and key != ord('p'):
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                exit(0)
+        elif retv:
+            _Frame.pre_subimage_project()
+            _Frame.subimage()
+
+            _Frame.analyze_all_subframes()
+
+            _Frame.draw()
+
+            # Quit if user presses q
+            key = ww.check()
+
+            '''
+            # Quit if user presses q, next frame if user presses n
+            while True:
+                key = cv2.waitKey(1)
+                if key & 0xFF == ord('q'):
+                    exit(0)
+                elif key & 0xFF == ord('n'):
+                    break
+            '''
+
+        else:
+            # Quit if user presses q
+            key = ww.check()
+
+    while key != ord('p'):
+        key = ww.check()
+
+    _Frame.replay()
 
 
 if __name__ == '__main__':
