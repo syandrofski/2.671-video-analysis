@@ -174,13 +174,17 @@ class WindowWrapper:
             temp_bgr = self.frame[y_full, x_full]
             temp_hsv = bgr2hsv(temp_bgr)
 
-            self.adv_struct[0, self.x, self.selections] = x_full
-            self.adv_struct[0, self.y, self.selections] = y_full
-            self.adv_struct[0, self.rx, self.selections] = x
-            self.adv_struct[0, self.ry, self.selections] = y
-            self.adv_struct[0, self.h, self.selections] = temp_hsv[0]
-            self.adv_struct[0, self.s, self.selections] = temp_hsv[1]
-            self.adv_struct[0, self.v, self.selections] = temp_hsv[2]
+            self.current[self.x, self.selections] = x_full
+            self.current[self.y, self.selections] = y_full
+            self.current[self.rx, self.selections] = x
+            self.current[self.ry, self.selections] = y
+            self.current[self.px, self.selections] = x_full
+            self.current[self.py, self.selections] = y_full
+            self.current[self.h, self.selections] = temp_hsv[0]
+            self.current[self.s, self.selections] = temp_hsv[1]
+            self.current[self.v, self.selections] = temp_hsv[2]
+            self.current[self.pt, self.selections] = 0
+            self.current[self.conf, self.selections] = 1
             self.selections += 1
 
             cv2.circle(self.frame, (x_full, y_full), 2, (0, 0, 255), 2)

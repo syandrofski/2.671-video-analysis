@@ -37,7 +37,7 @@ def main():
 
         _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, # fpath=base_path + t1,
                  marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
-                 area_weight=0.334, color_weight=0.333, distance_weight=0.333):
+                 area_weight=0.334, color_weight=0.333, distance_weight=0.333)
 
         first_frame = True
         retv = _Frame.retv
@@ -46,7 +46,6 @@ def main():
             # Capture a frame from the webcam
             _Frame.next_frame()
 
-            if first_frame
 
             if retv:
 
