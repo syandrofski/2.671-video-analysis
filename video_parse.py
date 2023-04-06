@@ -32,8 +32,16 @@ def main():
 
         # Add linear interpolation for unknown regions? in post?
 
-        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, # fpath=base_path + t1,
-                 marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
+        ''' Frame tester
+        cv2.imshow('test_frame', self.subframes[i])
+        key = cv2.waitKey(1) & 0xFF
+        while key != ord('q'):
+            key = cv2.waitKey(1) & 0xFF
+        exit(99)
+        '''
+
+        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.85, # fpath=base_path + t1,
+                 marker_buffer=0.015, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
                  area_weight=0.334, color_weight=0.333, distance_weight=0.333)
 
         first_frame = True

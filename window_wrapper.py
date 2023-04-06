@@ -83,7 +83,7 @@ def hsv_distance(hsv1, hsv2):
 class WindowWrapper:
 
     def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
-                 marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.7, val_buffer=0.7, visualize=True,
+                 marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.25, val_buffer=0.25, visualize=True,
                  area_weight=0.334, color_weight=0.333, distance_weight=0.333):
         self.path = fpath
         self.name = n
@@ -255,26 +255,42 @@ class WindowWrapper:
                     self.current[self.buf, i] = int(self.o_y/2.1)
                 if self.current[self.buf, i] >= self.o_x/2:
                     self.current[self.buf, i] = int(self.o_x/2.1)
+            else:
+                self.current[self.buf, i] = self.m_buf
 
             self.current[self.tlx, i] = int(self.current[self.px, i] - self.current[self.buf, i])
             self.current[self.tly, i] = int(self.current[self.py, i] - self.current[self.buf, i])
 
-            xmin = self.current[self.tlx, i]
-            xmax = self.current[self.tlx, i] + int(2 * self.current[self.buf, i])
-            ymin = self.current[self.tlx, i]
-            ymax = self.current[self.tlx, i] + int(2 * self.current[self.buf, i])
+            xmin = int(self.current[self.tlx, i])
+            xmax = int(self.current[self.tlx, i] + int(2 * self.current[self.buf, i]))
+            ymin = int(self.current[self.tly, i])
+            ymax = int(self.current[self.tly, i] + int(2 * self.current[self.buf, i]))
 
             # For some reason for slicing, X and Y are switched and it's stupid
             self.subframes.append(self.oframe[ymin:ymax, xmin:xmax])
+
             temp_hsv = self.hsv[ymin:ymax, xmin:xmax]
             self.sf_hsv.append(temp_hsv)
+
             temp_canny = self.canny[ymin:ymax, xmin:xmax]
+            temp_canny[temp_canny != 0] = 1
             self.sf_canny.append(temp_canny)
 
             temp_thresh = self.update_color_threshold(i)
             temp_range = cv2.inRange(temp_hsv, temp_thresh[0], temp_thresh[1])
+            temp_range[temp_range != 0] = 1
 
-            self.hyper.append(np.ceil((temp_range + temp_canny)/5))
+            temp_hyper = np.ceil((temp_range + temp_canny)/3)
+            temp_hyper = temp_hyper.astype(np.uint8)
+            self.hyper.append(temp_hyper)
+            print(temp_hyper)
+
+            cv2.imshow('test_frame', self.hyper[i])
+            key = cv2.waitKey(1) & 0xFF
+            while key != ord('n') and key != ord('q'):
+                key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                exit(201)
 
     def update_color_threshold(self, i):
         temp_thresh = (self.last[self.h, i], self.last[self.s, i], self.last[self.v, i])
@@ -391,20 +407,31 @@ class WindowWrapper:
 
     def contour_compare(self, contour):
         c, r = cv2. minEnclosingCircle(contour)
+
         hull = cv2.convexHull(contour)
         hull_area = cv2.contourArea(hull)
+
         rc, (w, h), a = cv2.minAreaRect(contour)
         rect_area = w*h
-        area_ratio = abs(math.log10(self.last[self.hull, self.i_tracker]/rect_area))
-        # Again. reverse y and x to pull hsv from a numpy array
+
+        if not rect_area == 0:
+            area_ratio = abs(math.log10(self.last[self.hull, self.i_tracker]/rect_area))
+        else:
+            area_ratio = 0
+
+        # Again, reverse y and x to pull hsv from a numpy array
+        print(self.hsv[0])
+        exit(99)
         hsv = self.sf_hsv[self.i_tracker][c[1], c[0]]
         last_hsv = np.array([self.last[self.h, self.i_tracker], self.last[self.s, self.i_tracker], self.last[self.s, self.i_tracker]])
         color_dist = 1 - hsv_distance(hsv, last_hsv)
         point_dist = dist(c[0], c[1], self.current[self.px, self.i_tracker], self.current[self.py, self.i_tracker])
         point_dist = point_dist / self.current[self.buf, self.i_tracker]
+
         if point_dist > 1:
             point_dist = 1.0
         point_dist = 1 - point_dist
+
         return (self.area_wt * area_ratio + self.color_sim_wt * color_dist + self.point_dist_wt * point_dist) / 3.0
 
     def analyze_subframe(self, i):
@@ -428,8 +455,9 @@ class WindowWrapper:
 
     def draw(self):
         if self.vis:
-            for i in range(self.trackers-1):
-                cv2.line(self.frame, (self.current[self.x, i], self.current[self.y, i]),(self.current[self.x, i+1], self.current[self.y, i+1]), (0, 0, 255), 2)
+            if self.trackers > 1:
+                for i in range(self.trackers-1):
+                    cv2.line(self.frame, (self.current[self.x, i], self.current[self.y, i]),(self.current[self.x, i+1], self.current[self.y, i+1]), (0, 0, 255), 2)
 
             for j in range(self.trackers):
                 if self.current[self.err, j] == 1:
@@ -462,10 +490,32 @@ class WindowWrapper:
                 exit(1)
 
         self.subimage()
+        self.get_hulls_initial()
+        self.last = np.copy(self.current)
         self.adv_struct = np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))
-        self.f_num += 1
         self.analyze_all_subframes()
 
     def analyze_all_subframes(self):
         for i in range(self.trackers):
             self.analyze_subframe(i)
+
+    def get_hulls_initial(self):
+        for i in range(self.trackers):
+            self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            #print(len(self.contours[i]))
+            if len(self.contours[i]) == 0:
+                print('Point ' + str(i + 1) + ' did not contain a representative marker. Please reselect.')
+                exit(101)
+            target_contour = max(self.contours[i], key=cv2.contourArea)
+            cv2.imshow('test_frame', self.hyper[i])
+            #print(len(self.contours[i]))
+            print('at hypers2')
+            print(self.hyper[i])
+            key = cv2.waitKey(1) & 0xFF
+            while key != ord('q'):
+                key = cv2.waitKey(1) & 0xFF
+            exit(99)
+
+            _, (w, h), _ = cv2.minAreaRect(target_contour)
+
+            self.current[self.hull, i] = w * h
