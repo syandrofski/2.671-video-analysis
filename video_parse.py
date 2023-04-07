@@ -13,7 +13,7 @@ from os.path import isfile
 
 def main():
 
-    num = 1
+    num = 3
     target_data_path = 'jump' + str(num)# + '-1'
     target_data_path += '.npy'
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
@@ -107,5 +107,11 @@ def main():
             _Frame = ww.WindowWrapper(fpath=base_path+jump)
             _Frame.set_data(data)
             _Frame.replay()
+        frames = np.reshape(np.arange(data.shape[0]), (data.shape[0], 1))
+        export = np.hstack((frames, frames/240.0, data[:, -1, 0:1]))
+        export = pd.DataFrame(export, columns = ['Frame', 'Time (s)', 'Angle'])
+        destination = data_path + target_data_path[:-4] + '.csv'
+        if not isfile(destination):
+            export.to_csv(destination)
 if __name__ == '__main__':
     main()
