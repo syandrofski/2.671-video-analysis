@@ -38,7 +38,7 @@ def main():
     exit(99)
     '''
 
-    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.6, fpath=base_path + jump,
+    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.85, fpath=base_path + jump,
              marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.5, val_buffer=0.5, visualize=True,
              area_weight=0.2, color_weight=0.1, distance_weight=0.1, circularity_weight=0.2, filled_weight=0.4,
              hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=True)

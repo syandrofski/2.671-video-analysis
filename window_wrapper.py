@@ -581,7 +581,7 @@ class WindowWrapper:
                 br = (int(self.current[self.tlx, i] + 2 * b), int(self.current[self.tly, i] + 2 * b))
 
                 if self.trackers > 1 and i < (self.trackers - 1):
-                    cv2.line(self.frame, m_cent,(int(self.current[self.x, i+1]), int(self.current[self.y, i+1])), (0, 0, 255), 2)
+                    cv2.line(self.frame, m_cent,(int(self.current[self.x, i+1]), int(self.current[self.y, i+1])), (255, 255, 0), 2)
 
                 if self.current[self.err, i] == 1:
                     marker_color = (0, 0, 255)
