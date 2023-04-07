@@ -13,7 +13,7 @@ from os.path import isfile
 
 def main():
 
-    num = 3
+    num = 5
     target_data_path = 'jump' + str(num)# + '-1'
     target_data_path += '.npy'
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
