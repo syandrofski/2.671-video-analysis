@@ -13,12 +13,12 @@ import window_wrapper as ww
 def main():
 
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-    num = 7
-    t1 = 'jump1_AdobeExpress.mp4'
+    num = 2
+    jump = 'jump\\mp4\\jump' + str(num) + '.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
-    track_points = 3
+    track_points = 1
 
     # Add in a slider, effectively, dividing saturation and value
     # Smart dynamic thresholding?
@@ -38,7 +38,7 @@ def main():
     exit(99)
     '''
 
-    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.6, fpath=base_path + steven,
+    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.6, fpath=base_path + jump,
              marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.5, val_buffer=0.5, visualize=True,
              area_weight=0.2, color_weight=0.1, distance_weight=0.1, circularity_weight=0.2, filled_weight=0.4,
              hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=True)
