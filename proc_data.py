@@ -65,6 +65,46 @@ def plot_together():
     print(max_vels)
     return dfs
 
+def plot_one_grad():
+    # specify the directory containing the csv files
+    fpath = "C:\\Users\\spenc\\PycharmProjects\\2.671\\Data Files\\jump5.csv"
+
+    df = pd.read_csv(fpath, header=1, usecols=[2, 3], names=["Time", "Angle"])
+
+    # create a figure and axes
+    fig, ax = plt.subplots()
+
+    ax.plot(df["Time"].to_numpy(), np.gradient(df["Angle"].to_numpy())*240, 'r-', color=(1.0, 165/255.0, 0))
+
+    # add labels and a legend
+    ax.set_xlabel("Time (on ground) [s]")
+    ax.set_ylabel("Knee Angular Velocity [deg/s]")
+    #ax.set_title("Angle vs. Time")
+    #ax.legend()
+    plt.savefig('single_vel_graph')
+    # show the plot
+    plt.show()
+
+def plot_one_ang():
+    # specify the directory containing the csv files
+    fpath = "C:\\Users\\spenc\\PycharmProjects\\2.671\\Data Files\\jump5.csv"
+
+    df = pd.read_csv(fpath, header=1, usecols=[2, 3], names=["Time", "Angle"])
+
+    # create a figure and axes
+    fig, ax = plt.subplots()
+
+    ax.plot(df["Time"].to_numpy(), df["Angle"], 'r-', color='blue')
+
+    # add labels and a legend
+    ax.set_xlabel("Time (on ground) [s]")
+    ax.set_ylabel("Knee Angle [deg]")
+    #ax.set_title("Angle vs. Time")
+    #ax.legend()
+    plt.savefig('single_ang_graph')
+    # show the plot
+    plt.show()
+
 def get_mins():
     mins = []
     gcts =[]
@@ -79,7 +119,8 @@ def get_mins():
     print(gcts)
 
 def main():
-    plot_together()
+    plot_one_grad()
+    plot_one_ang()
 
 if __name__ == '__main__':
     main()
