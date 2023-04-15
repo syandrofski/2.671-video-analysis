@@ -48,11 +48,13 @@ def plot_together():
 
     # create a figure and axes
     fig, ax = plt.subplots()
+    f2, ax2 = plt.subplots()
 
     # loop through each dataframe and plot it on the same graph
     for i, df in enumerate(dfs):
-        ax.plot(df["Time"].to_numpy(), np.gradient(df["Angle"].to_numpy())*240, label=f"File {i + 1}", alpha=0.5)
+        ax.plot(df["Time"].to_numpy(), np.gradient(df["Angle"].to_numpy())*240, label=f"File {i + 1}", alpha=0.65)
         max_vels.append(max(np.gradient(df["Angle"].to_numpy()*240)))
+        ax2.plot(df["Time"].to_numpy()[-1], max_vels[-1], label=f"File {i + 1}", alpha=0.65)
 
     # add labels and a legend
     ax.set_xlabel("Time (on ground) [s]")
@@ -107,7 +109,7 @@ def plot_one_ang():
 
 def get_mins():
     mins = []
-    gcts =[]
+    gcts = []
     dfs = plot_together()
     for df in dfs:
         mins.append(df['Angle'].min())
@@ -119,8 +121,9 @@ def get_mins():
     print(gcts)
 
 def main():
-    plot_one_grad()
-    plot_one_ang()
+    #plot_one_grad()
+    #plot_one_ang()
+    plot_together()
 
 if __name__ == '__main__':
     main()
