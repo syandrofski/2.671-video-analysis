@@ -111,13 +111,15 @@ class WindowWrapper:
     def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
                  marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.25, val_buffer=0.25, visualize=True,
                  area_weight=0.2, color_weight=0.2, distance_weight=0.2, circularity_weight=0.2, filled_weight=0.2,
-                 hyper=True, canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False):
+                 hyper=True, canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
+                 error_threshold=0.5, debug=False):
         self.path = fpath
         self.name = n
         self.vis = visualize
         self.parsing = True
         self.debug = debug
         self.augment_canny = hyper
+        self.err_thresh = error_threshold
 
         self.data_headers = ['x', 'y', 'tlx', 'tly', 'rx', 'ry', 'px', 'py', 'H', 'S', 'V', 'Hull Area',
                              'Confidence', 'Buffer', 'Projection Type', 'Error Code']
@@ -256,7 +258,10 @@ class WindowWrapper:
         if self.retv:
             self.f_num += 1
 
-            self.last = np.copy(self.current)
+            for t in range(self.trackers):
+                if self.current[self.err, t] == 0:
+                    self.last[:, t] = self.current[:, t]
+            #self.last = np.copy(self.current)
             self.adv_struct = np.vstack((self.adv_struct, np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))))
             self.current = np.zeros((len(self.data_headers), self.trackers))
 
@@ -288,6 +293,7 @@ class WindowWrapper:
         self.subframes = []
         self.sf_hsv = []
         self.sf_canny = []
+        self.sf_mask = []
         self.hyper = []
 
         for i in range(self.trackers):
@@ -320,6 +326,7 @@ class WindowWrapper:
 
             temp_thresh = self.update_color_threshold(i)
             temp_range = cv2.inRange(temp_hsv, temp_thresh[0], temp_thresh[1])
+            self.sf_mask.append(temp_range)
             temp_range[temp_range != 0] = 255
             #cv2.imshow('test_frame', temp_range)
 
@@ -402,8 +409,8 @@ class WindowWrapper:
 
             self.current[self.buf, i]  = self.m_buf
         elif pt == 2:
-            err_codes = self.adv_struct[:, self.err, i]
-            healthy = np.array(np.where(err_codes == 0))
+            err_codes = self.adv_struct[:, self.err, i].flatten()
+            healthy = np.array(np.where(err_codes == 0)).flatten()
             last = healthy[-1]
             stl = healthy[-2]
             span = abs(stl-last)
@@ -494,7 +501,7 @@ class WindowWrapper:
         mini_tly = int(corners[1])
         mini_brx = int(corners[2])
         mini_bry = int(corners[3])
-        mini = self.hyper[self.i_tracker][mini_tly:mini_bry+1, mini_tlx:mini_brx+1]
+        mini = self.hyper[self.i_tracker][mini_tly:mini_bry+1, mini_tlx:mini_brx+1] #----------------Potentially change to match selected analysis frame, i.e. sf_mask---------
         pct_fill = np.count_nonzero(mini) / float(mini.size)
 
         '''
@@ -525,51 +532,52 @@ class WindowWrapper:
 
         confidence = self.area_wt * area_ratio + self.color_sim_wt * color_dist + self.point_dist_wt * point_dist + self.circ_wt * circularity + self.fill_wt * pct_fill
 
+        if verbose and self.debug:
+            print('confidence;', confidence)
+
         return confidence
 
     def analyze_subframe(self, i):
         self.compare_tracker = 0
-        self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        self.contours[i], _ = cv2.findContours(self.sf_mask[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #formerly hyper instead of sf_mask
 
         self.i_tracker = i
-        try:
-            target_contour = max(self.contours[i], key=self.contour_compare)#cv2.contourArea)
-        except ValueError as e:
-            print(e)
-            '''
-            cv2.imshow('test_frame', cv2.resize(self.hyper[i], (250, 250)))
-            key = cv2.waitKey(1) & 0xFF
-            while key != ord('q'):
-                key = cv2.waitKey(1) & 0xFF
-            exit(99)
-            '''
-        self.i_tracker = -1
 
-        self.temp = target_contour
+        if len(self.contours[i]) < 1:
+            pass
+        else:
+            target_contour = max(self.contours[i], key=cv2.contourArea)#self.contour_compare)#cv2.contourArea)
 
-        self.current[self.conf, i] = self.contour_compare(target_contour, verbose=True)
-        (x, y), (w, h), a = cv2.minAreaRect(target_contour)
+            self.i_tracker = -1
 
-        self.current[self.hull, i] = w*h
-        self.current[self.rx, i] = x
-        self.current[self.ry, i] = y
-        self.current[self.x, i] = x + self.current[self.tlx, i]
-        self.current[self.y, i] = y + self.current[self.tly, i]
+            self.temp = target_contour
 
-        # Switching y and x once again
-        # noinspection PyTypeChecker
-        temp_bgr = self.oframe[int(self.current[self.y, i]), int(self.current[self.x, i])]
-        temp_hsv = bgr2hsv(temp_bgr)
+            self.current[self.conf, i] = self.contour_compare(target_contour, verbose=True)
+            (x, y), (w, h), a = cv2.minAreaRect(target_contour)
 
-        self.current[self.h, i] = temp_hsv[0]
-        self.current[self.s, i] = temp_hsv[1]
-        self.current[self.v, i] = temp_hsv[2]
+            if self.current[self.conf, i] < self.err_thresh*self.last[self.conf, i]:
+                self.current[self.err, i] = 1
+                if self.debug:
+                    print(self.f_num, self.current[self.conf, i])
+                self.current[self.conf, i] = self.last[self.conf, i]
+            #else: #------------------------------------------------------------------------<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-        if self.current[self.conf, i] < 0.2:
-            self.current[self.err, i] = 1
-            print(self.f_num, self.current[self.conf, i])
+            self.current[self.hull, i] = w*h
+            self.current[self.rx, i] = x
+            self.current[self.ry, i] = y
+            self.current[self.x, i] = x + self.current[self.tlx, i]
+            self.current[self.y, i] = y + self.current[self.tly, i]
 
-        #print('error code', self.current[self.err, i])
+            # Switching y and x once again
+            # noinspection PyTypeChecker
+            temp_bgr = self.oframe[int(self.current[self.y, i]), int(self.current[self.x, i])]
+            temp_hsv = bgr2hsv(temp_bgr)
+
+            self.current[self.h, i] = temp_hsv[0]
+            self.current[self.s, i] = temp_hsv[1]
+            self.current[self.v, i] = temp_hsv[2]
+
+            #print('error code', self.current[self.err, i])
 
     def draw(self):
         if self.vis:
@@ -599,7 +607,8 @@ class WindowWrapper:
 
             if self.debug:
                 cv2.imshow('canny', cv2.resize(self.canny, (self.f_x, self.f_y)))
-                tmp = np.copy(self.hyper[self.trackers-1])
+                #tmp = np.copy(self.hyper[self.trackers-1])
+                tmp = np.copy(self.sf_mask[self.trackers-1])
                 tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
                 cv2.drawContours(tmp, [self.temp], -1, (0, 0, 255), 1)
                 cv2.imshow('hyper', cv2.resize(tmp, (250, 250)))
@@ -619,9 +628,9 @@ class WindowWrapper:
             if key == ord('q'):
                 exit(1)
 
-        self.current = np.transpose(self.current)
-        self.current = self.current[self.current[:, self.y].argsort()]
-        self.current = np.transpose(self.current)
+        #self.current = np.transpose(self.current)
+        #self.current = self.current[self.current[:, self.y].argsort()]
+        #self.current = np.transpose(self.current)
 
         self.last = np.copy(self.current)
         self.adv_struct = np.reshape(self.current, (1, self.current.shape[0], self.current.shape[1]))
@@ -637,12 +646,23 @@ class WindowWrapper:
 
     def get_hulls_initial(self):
         for i in range(self.trackers):
-            self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            self.contours[i], _ = cv2.findContours(self.sf_mask[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
             #print(len(self.contours[i]))
             if len(self.contours[i]) == 0:
                 print('Point ' + str(i + 1) + ' did not contain a representative marker. Please reselect.')
                 exit(101)
             target_contour = max(self.contours[i], key=cv2.contourArea)
+
+            if self.debug:
+                #print sf_mask and contour
+                sfm = np.copy(self.sf_mask[i])
+                cv2.drawContours(sfm, [target_contour], -1, (0, 0, 255), 2)
+                cv2.imshow('subframe mask', sfm)
+                key = cv2.waitKey(1) & 0xFF
+                while key != ord('q') and key != ord('n'):
+                    key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    exit(400)
             '''
             cv2.imshow('test_frame', self.hyper[i])
             #print(len(self.contours[i]))
