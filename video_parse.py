@@ -13,18 +13,18 @@ from os.path import isfile
 
 def main():
 
-    num = 5
-    target_data_path = 'new_jump' + str(num)# + '-1'
+    num = 1
+    target_data_path = 'new_jump_' + str(num)# + '-1'
     target_data_path += '.npy'
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
     data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\'
-    jump = 'new_jump\\mp4\\new_jump' + str(num) + '.mp4'
+    new_jump = 'new_jump\\mp4\\new_jump_' + str(num) + '.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
     overwrite = False
     play = True
-    track_points = 3
+    track_points = 4
 
     if not isfile(data_path + target_data_path) or overwrite:
 
@@ -100,13 +100,14 @@ def main():
         data = _Frame.export_data()
         np.save(data_path + target_data_path, data)
     else:
-        data = np.load(data_path + target_data_path)
-        data = proc.angles_to_hor(data, [1])
-        res = (data[:, -1, 2:3] - data[:, -1, 0:1]) % 360
-        data = np.hstack((data, np.reshape(np.tile(res, (1, data.shape[2])), (data.shape[0], 1, data.shape[2]))))
+        data_old = np.load(data_path + target_data_path)
+        interp_data = proc.interpolate(data)
+        interp_data = proc.angles_to_hor(data, [1])
+        res = (interp_data[:, -1, 2:3] - interp_data[:, -1, 0:1]) % 360
+        interp_data = np.hstack((interp_data, np.reshape(np.tile(res, (1, interp_data.shape[2])), (interp_data.shape[0], 1, interp_data.shape[2]))))
         if play:
-            _Frame = ww.WindowWrapper(fpath=base_path+jump)
-            _Frame.set_data(data)
+            _Frame = ww.WindowWrapper(fpath=base_path+new_jump)
+            _Frame.set_data(data_old)
             _Frame.replay()
         frames = np.reshape(np.arange(data.shape[0]), (data.shape[0], 1))
         export = np.hstack((frames, frames/240.0, data[:, -1, 0:1]))
