@@ -14,20 +14,20 @@ from os.path import isfile
 def main():
 
     num = 5
-    target_data_path = 'jump' + str(num)# + '-1'
+    target_data_path = 'new_jump' + str(num)# + '-1'
     target_data_path += '.npy'
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-    data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Data Files\\'
-    jump = 'jump\\mp4\\jump' + str(num) + '.mp4'
+    data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\'
+    jump = 'new_jump\\mp4\\new_jump' + str(num) + '.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
     overwrite = False
     play = True
+    track_points = 3
 
     if not isfile(data_path + target_data_path) or overwrite:
 
-        track_points = 3
 
         # Add in a slider, effectively, dividing saturation and value
         # Smart dynamic thresholding?
@@ -47,10 +47,11 @@ def main():
         exit(99)
         '''
 
-        _Frame = ww.WindowWrapper(n='frame', targets=track_points, rsz_factor=0.6, fpath=base_path + jump,
-                 marker_buffer=0.015, hue_buffer=0.015, sat_buffer=0.5, val_buffer=0.5, visualize=True,
-                 area_weight=0.3, color_weight=0.2, distance_weight=0.2, circularity_weight=0.3, filled_weight=0,
-                 hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True, debug=False)
+        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + new_jump,
+             marker_buffer=0.035, hue_buffer=0.075, sat_buffer=0.5, val_buffer=0.5, visualize=True,
+             area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
+             hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
+             error_threshold=0.5, debug=False)
 
         first_frame = True
         retv = _Frame.retv
