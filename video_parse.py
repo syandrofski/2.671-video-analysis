@@ -13,13 +13,13 @@ import window_wrapper as ww
 def main():
 
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-    num = 2
+    num = 21
     jump = 'jump\\mp4\\jump' + str(num) + '.mp4'
     new_jump = 'new_jump\\mp4\\new_jump_' + str(num) + '.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
-    track_points = 6
+    track_points = 4
 
     # Add in a slider, effectively, dividing saturation and value
     # Smart dynamic thresholding?
