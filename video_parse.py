@@ -15,11 +15,11 @@ def main():
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
     num = 5
     jump = 'jump\\mp4\\jump' + str(num) + '.mp4'
-    new_jump = 'new_jump\\mp4\\new_jump_' + str(num) + '.mp4'
+    new_jump = 'opt_jump\\mp4\\opt_jump_' + str(num) + '.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
-    track_points = 4
+    track_points = 5
 
     # Add in a slider, effectively, dividing saturation and value
     # Smart dynamic thresholding?
@@ -39,10 +39,10 @@ def main():
     exit(99)
     '''
 
-    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + new_jump,
-             marker_buffer=0.035, hue_buffer=0.075, sat_buffer=0.5, val_buffer=0.5, visualize=True,
+    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + opt_jump,
+             marker_buffer=0.035, hue_buffer=0.035, sat_buffer=0.35, val_buffer=0.5, visualize=True,
              area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
-             hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
+             hyper=False, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
              error_threshold=0.5, debug=True)
 
     first_frame = True

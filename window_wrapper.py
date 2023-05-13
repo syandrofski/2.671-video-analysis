@@ -345,7 +345,7 @@ class WindowWrapper:
             temp_range[temp_range != 0] = 255
             #cv2.imshow('test_frame', temp_range)
 
-            if self.augment_canny:
+            if self.augment_canny: #--------------------------------------------------------------- FIX THIS IF STATEMENT back to whatever the default should be
                 temp_hyper = temp_canny + temp_range
             else:
                 temp_hyper = np.copy(temp_canny)
@@ -554,7 +554,7 @@ class WindowWrapper:
 
     def analyze_subframe(self, i):
         self.compare_tracker = 0
-        self.contours[i], _ = cv2.findContours(self.sf_mask[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #formerly hyper instead of sf_mask
+        self.contours[i], _ = cv2.findContours(self.hyper[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #formerly hyper instead of sf_mask --------- back to hyper since I forgot I could change just canny to just hyper in subimage()
 
         self.i_tracker = i
 
