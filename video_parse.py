@@ -39,7 +39,7 @@ def main():
     exit(99)
     '''
 
-    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + opt_jump,
+    _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + new_jump,
              marker_buffer=0.035, hue_buffer=0.035, sat_buffer=0.35, val_buffer=0.5, visualize=True,
              area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
              hyper=False, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
