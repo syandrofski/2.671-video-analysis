@@ -262,6 +262,8 @@ class WindowWrapper:
         self.retv, self.oframe = self.cap.read()
         if self.retv:
             self.f_num += 1
+        if self.debug:
+            print(self.f_num)
 
             for t in range(self.trackers):
                 if self.current[self.err, t] == 0:
