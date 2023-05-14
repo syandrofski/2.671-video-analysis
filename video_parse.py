@@ -19,6 +19,7 @@ def main():
     base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
     data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\'
     new_jump = 'new_jump\\mp4\\new_jump_' + str(num) + '.mp4'
+    opt_jump = 'opt_jump\\mp4\\opt_jump_' + str(num) + '.mp4'
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
@@ -47,7 +48,7 @@ def main():
         exit(99)
         '''
 
-        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + new_jump,
+        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + opt_jump,
              marker_buffer=0.035, hue_buffer=0.075, sat_buffer=0.5, val_buffer=0.5, visualize=True,
              area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
              hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
