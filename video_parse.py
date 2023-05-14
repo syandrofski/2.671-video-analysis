@@ -44,7 +44,7 @@ def main():
              marker_buffer=0.035, hue_buffer=0.075, sat_buffer=0.5, val_buffer=0.5, visualize=True,
              area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
              hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
-             error_threshold=0.5, debug=True)
+             error_threshold=0.5, debug=False)
 
     first_frame = True
     retv = _Frame.retv
@@ -80,6 +80,7 @@ def main():
             '''
 
         else:
+            print('checked')
             # Quit if user presses q
             key = ww.check()
     print('done!')
