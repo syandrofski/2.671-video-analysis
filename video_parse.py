@@ -25,7 +25,7 @@ def main():
 
     overwrite = False
     play = True
-    track_points = 4
+    track_points = 5
 
     if not isfile(data_path + target_data_path) or overwrite:
 
