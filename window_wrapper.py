@@ -338,10 +338,11 @@ class WindowWrapper:
             temp_canny[temp_canny != 0] = 255
             self.sf_canny.append(temp_canny)
 
-            if self.last[self.err, i] == 0:
-                self.thresh = self.update_color_threshold(i)
+
+            self.thresh = self.update_color_threshold(i)
             if self.debug:
                 print('THRESHOLDS:\n', self.thresh)
+
             temp_range = cv2.inRange(temp_hsv, self.thresh[0], self.thresh[1])
             self.sf_mask.append(temp_range)
             temp_range[temp_range != 0] = 255
@@ -711,7 +712,7 @@ class WindowWrapper:
     def replay(self):
         while True:
             self.cap = cv2.VideoCapture(self.path)
-            self.f_num = 0
+            self.f_num = 1
             self.retv = True
             while self.retv and self.f_num < self.adv_struct.shape[0]:
                 self.nf_replay()

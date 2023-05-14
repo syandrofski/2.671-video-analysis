@@ -20,7 +20,7 @@ def main():
     steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
-    track_points = 1
+    track_points = 5
 
     # Add in a slider, effectively, dividing saturation and value
     # Smart dynamic thresholding?
@@ -80,7 +80,6 @@ def main():
             '''
 
         else:
-            print('checked')
             # Quit if user presses q
             key = ww.check()
     print('done!')
