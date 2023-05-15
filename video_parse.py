@@ -24,8 +24,11 @@ def main():
     jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
     overwrite = False
-    play = True
+    play = False
     track_points = 5
+    rsz = 0.85
+
+    chosen_path = base_path + opt_jump
 
     if not isfile(data_path + target_data_path) or overwrite:
 
@@ -48,7 +51,7 @@ def main():
         exit(99)
         '''
 
-        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=0.5, fpath=base_path + opt_jump,
+        _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=rsz, fpath=chosen_path,
              marker_buffer=0.035, hue_buffer=0.075, sat_buffer=0.5, val_buffer=0.5, visualize=True,
              area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
              hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
@@ -107,7 +110,7 @@ def main():
         res = (interp_data[:, -1, 2:3] - interp_data[:, -1, 0:1]) % 360
         interp_data = np.hstack((interp_data, np.reshape(np.tile(res, (1, interp_data.shape[2])), (interp_data.shape[0], 1, interp_data.shape[2]))))
         if play:
-            _Frame = ww.WindowWrapper(fpath=base_path+new_jump, n=track_points)
+            _Frame = ww.WindowWrapper(fpath=chosen_path, rsz_factor=rsz)
             _Frame.set_data(data)
             _Frame.replay()
         frames = np.reshape(np.arange(data.shape[0]), (data.shape[0], 1))

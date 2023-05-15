@@ -108,7 +108,7 @@ def check():
 
 class WindowWrapper:
 
-    def __init__(self, n, targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
+    def __init__(self, n='frame', targets=3, rsz_factor=0.5, fpath='C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\test.mp4',
                  marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.25, val_buffer=0.25, visualize=True,
                  area_weight=0.2, color_weight=0.2, distance_weight=0.2, circularity_weight=0.2, filled_weight=0.2,
                  hyper=True, canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
@@ -619,7 +619,7 @@ class WindowWrapper:
                     cv2.line(self.frame, m_cent,(int(self.current[self.x, i+1]), int(self.current[self.y, i+1])), (255, 255, 0), 2)
 
                 if self.current[self.err, i] == 1:
-                    #marker_color = (0, 0, 255)
+                    marker_color = (0, 0, 255)
                     box_color = (0, 0, 255)
                 else:
                     green = self.current[self.conf, i] * 255
@@ -740,15 +740,14 @@ class WindowWrapper:
         self.trackers = self.adv_struct.shape[2]
 
     def interpolate(self):
-        ct = 0
-        rec = 0
         for i in range(self.trackers):
             ct = 0
             rec = 0
             for j in range(self.adv_struct.shape[0]):
-                if self.adv_struct[j, self.err, i] and ct == 0:
+                if self.adv_struct[j, self.err, i] == 1 and j > 5:
+                    if ct == 0:
+                        rec = j - 1
                     ct += 1
-                    rec = i - 1
                 elif ct > 0:
                     x_rate = (self.adv_struct[j, self.x, i] - self.adv_struct[rec, self.x, i])/float(j - rec)
                     y_rate = (self.adv_struct[j, self.y, i] - self.adv_struct[rec, self.y, i])/float(j - rec)
@@ -759,8 +758,9 @@ class WindowWrapper:
                     for k in range(rec + 1, j):
                         self.adv_struct[k, self.x, i] = xb + (k-rec)*x_rate
                         self.adv_struct[k, self.y, i] = yb + (k-rec)*y_rate
-                        self.adv_struct[k, self.tlx, i] = tlxb+ (k-rec)*x_rate
-                        self.adv_struct[k, self.tly, i] = tlyb+ (k-rec)*y_rate
+                        self.adv_struct[k, self.tlx, i] = tlxb + (k-rec)*x_rate
+                        self.adv_struct[k, self.tly, i] = tlyb + (k-rec)*y_rate
                         self.adv_struct[k, self.buf, i] = self.m_buf
+                        self.adv_struct[k, self.err, i] = 0
                     ct = 0
                     rec = 0

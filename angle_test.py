@@ -54,7 +54,32 @@ ax.set_aspect('equal')
 plt.show()
 '''
 
-a = np.array([0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0])
-zeros = (np.array(np.where(np.flip(a)==0))+1)*-1
-for z in zeros:
-    print(a[z])
+
+def interpolate(data):
+    x = 0
+    err = 1
+    ct = 0
+    rec = 0
+    for j in range(data.shape[0]):
+        if data[j, err] == 1:
+            if ct == 0:
+                rec = j - 1
+            ct += 1
+        elif ct > 0:
+            x_rate = (data[j, x] - data[rec, x]) / float(j - rec)
+            xb = data[rec, x]
+            for k in range(rec + 1, j):
+                data[k, x] = xb + (k - rec) * x_rate
+                data[k, err] = 0
+            ct = 0
+            rec = 0
+    return data
+
+a = np.zeros((10, 2))
+for i in range(a.shape[0]):
+    a[i, 0] = i
+a[2, :] = np.array([0, 1])
+a[4, :] = np.array([0, 1])
+a[5, :] = np.array([0, 1])
+print(np.transpose(a), '\n')
+print(np.transpose(interpolate(a)))
