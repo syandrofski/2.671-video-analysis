@@ -738,3 +738,29 @@ class WindowWrapper:
     def set_data(self, struc):
         self.adv_struct = struc
         self.trackers = self.adv_struct.shape[2]
+
+    def interpolate(self):
+        ct = 0
+        rec = 0
+        for i in range(self.trackers):
+            ct = 0
+            rec = 0
+            for j in range(self.adv_struct.shape[0]):
+                if self.adv_struct[j, self.err, i] and ct == 0:
+                    ct += 1
+                    rec = i - 1
+                elif ct > 0:
+                    x_rate = (self.adv_struct[j, self.x, i] - self.adv_struct[rec, self.x, i])/float(j - rec)
+                    y_rate = (self.adv_struct[j, self.y, i] - self.adv_struct[rec, self.y, i])/float(j - rec)
+                    xb = self.adv_struct[rec, self.x, i]
+                    yb = self.adv_struct[rec, self.y, i]
+                    tlxb = self.adv_struct[rec, self.tlx, i]
+                    tlyb = self.adv_struct[rec, self.tly, i]
+                    for k in range(rec + 1, j):
+                        self.adv_struct[k, self.x, i] = xb + (k-rec)*x_rate
+                        self.adv_struct[k, self.y, i] = yb + (k-rec)*y_rate
+                        self.adv_struct[k, self.tlx, i] = tlxb+ (k-rec)*x_rate
+                        self.adv_struct[k, self.tly, i] = tlyb+ (k-rec)*y_rate
+                        self.adv_struct[k, self.buf, i] = self.m_buf
+                    ct = 0
+                    rec = 0

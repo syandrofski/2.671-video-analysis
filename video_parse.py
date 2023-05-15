@@ -98,17 +98,17 @@ def main():
         if key != ord('x'):
             _Frame.replay()
 
+        _Frame.interpolate()
         data = _Frame.export_data()
         np.save(data_path + target_data_path, data)
     else:
-        data_old = np.load(data_path + target_data_path)
-        interp_data = proc.interpolate(data)
+        data = np.load(data_path + target_data_path)
         interp_data = proc.angles_to_hor(data, [1])
         res = (interp_data[:, -1, 2:3] - interp_data[:, -1, 0:1]) % 360
         interp_data = np.hstack((interp_data, np.reshape(np.tile(res, (1, interp_data.shape[2])), (interp_data.shape[0], 1, interp_data.shape[2]))))
         if play:
-            _Frame = ww.WindowWrapper(fpath=base_path+new_jump)
-            _Frame.set_data(data_old)
+            _Frame = ww.WindowWrapper(fpath=base_path+new_jump, n=track_points)
+            _Frame.set_data(data)
             _Frame.replay()
         frames = np.reshape(np.arange(data.shape[0]), (data.shape[0], 1))
         export = np.hstack((frames, frames/240.0, data[:, -1, 0:1]))
