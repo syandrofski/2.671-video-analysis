@@ -1,4 +1,5 @@
 import os
+import csv
 import numpy as np
 import pandas as pd
 import seaborn as sb
@@ -41,6 +42,7 @@ def process_struct(adv_struct):
     cols = ['Frame', 'Time (ms)', 'Ankle (deg)', 'Knee (deg)', 'Hip (deg)']
     fdf = pd.DataFrame(final, columns=cols)
     return fdf
+
 
 def unit_test(n):
     tgts = np.array([0, 1, 2])

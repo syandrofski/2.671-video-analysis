@@ -89,18 +89,18 @@ def plot_one_grad():
 
 def plot_one_ang():
     # specify the directory containing the csv files
-    fpath = "C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\jump_5.csv"
+    fpath = "C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\opt_jump_1.csv"
 
-    df = pd.read_csv(fpath, header=1, usecols=[2, 3], names=["Time", "Angle"])
+    df = pd.read_csv(fpath, header=1, usecols=[1, 5], names=["Frame", "Hip (deg)"])
 
     # create a figure and axes
     fig, ax = plt.subplots()
 
-    ax.plot(df["Time"].to_numpy(), df["Angle"], 'r-', color='blue')
+    ax.plot(df["Frame"].to_numpy(), df["Hip (deg)"], 'r-', color='orange')
 
     # add labels and a legend
-    ax.set_xlabel("Time (on ground) [s]")
-    ax.set_ylabel("Knee Angle [deg]")
+    ax.set_xlabel("Frame")
+    ax.set_ylabel("Hip Angle [deg]")
     #ax.set_title("Angle vs. Time")
     #ax.legend()
     plt.savefig('single_ang_graph')
