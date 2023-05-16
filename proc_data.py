@@ -37,7 +37,7 @@ def plot_together():
     max_vels = []
 
     # specify the directory containing the csv files
-    directory = "C:\\Users\\spenc\\PycharmProjects\\2.671\\Data Files\\"
+    directory = "C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\"
 
     # loop through each file in the directory and read it into a dataframe
     for filename in os.listdir(directory):
@@ -89,7 +89,7 @@ def plot_one_grad():
 
 def plot_one_ang():
     # specify the directory containing the csv files
-    fpath = "C:\\Users\\spenc\\PycharmProjects\\2.671\\Data Files\\jump5.csv"
+    fpath = "C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\jump_5.csv"
 
     df = pd.read_csv(fpath, header=1, usecols=[2, 3], names=["Time", "Angle"])
 
@@ -122,8 +122,8 @@ def get_mins():
 
 def main():
     #plot_one_grad()
-    #plot_one_ang()
-    plot_together()
+    plot_one_ang()
+    #plot_together()
 
 if __name__ == '__main__':
     main()

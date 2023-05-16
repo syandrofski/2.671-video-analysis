@@ -13,12 +13,12 @@ from os.path import isfile
 
 def main():
 
-    for q in range(1, 11):
+    for q in range(1, 2):
         num = q
         target_data_path = 'jump_' + str(num)# + '-1'
         target_data_path += '.npy'
         base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-        data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Hip\\'
+        data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\'
         new_jump = 'new_jump\\mp4\\new_jump_' + str(num) + '.mp4'
         opt_jump = 'opt_jump\\mp4\\opt_jump_' + str(num) + '.mp4'
         steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
@@ -114,8 +114,8 @@ def main():
                 _Frame = ww.WindowWrapper(fpath=chosen_path, rsz_factor=rsz)
                 _Frame.set_data(data)
                 _Frame.replay()
-            frames = np.reshape(np.arange(data.shape[0]), (data.shape[0], 1))
-            export = np.hstack((frames, frames/240.0, data[:, -1, 0:1]))
+            frames = np.reshape(np.arange(interp_data.shape[0]), (interp_data.shape[0], 1))
+            export = np.hstack((frames, frames/240.0, interp_data[:, -1, 0:1]))
             export = pd.DataFrame(export, columns = ['Frame', 'Time (s)', 'Angle'])
             destination = data_path + target_data_path[:-4] + '.csv'
             if not isfile(destination):

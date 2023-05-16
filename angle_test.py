@@ -75,6 +75,7 @@ def interpolate(data):
             rec = 0
     return data
 
+'''
 a = np.zeros((10, 2))
 for i in range(a.shape[0]):
     a[i, 0] = i
@@ -83,3 +84,9 @@ a[4, :] = np.array([0, 1])
 a[5, :] = np.array([0, 1])
 print(np.transpose(a), '\n')
 print(np.transpose(interpolate(a)))
+'''
+
+data = np.load("C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\jump_1.npy")
+print(data[20, :, 0], '\n')
+data2 = np.load("C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\jump_5.npy")
+print(data2[20, :, 0])
