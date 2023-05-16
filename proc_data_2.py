@@ -6,7 +6,20 @@ import matplotlib.pyplot as plt
 from math import pi
 
 def compute_angle(pts1, pts2, pts3):
-    return pts1[:, 0] + pts2[:, 0] + pts3[:, 0]
+    vec12 = pts2 - pts1
+    vec23 = pts3 - pts2
+
+    dot_product = np.sum(vec12 * vec23, axis=1)
+
+    mag_12 = np.linalg.norm(vec12, axis=1)
+    mag_23 = np.linalg.norm(vec23, axis=1)
+
+    cos_ang = dot_product / (mag_12 * mag_23)
+
+    angle_rad = np.arccos(cos_ang)
+    angle_deg = np.degrees(angle_rad)
+
+    return angle_deg
 
 def process_struct(adv_struct):
     frames, cats, points = adv_struct.shape
@@ -27,9 +40,15 @@ def process_struct(adv_struct):
     fdf = pd.DataFrame(final, columns=cols)
     return fdf
 
+def unit_test(n):
+    if n == 1:
+        tp1 = np.array([[1, 1], [2, 1]])
+        tp2 = np.array([[0, 0], [1, 0]])
+        tp3 = np.array([[1, 0], [2, 0]])
+        print(compute_angle(tp1, tp2, tp3))
 
 def main():
-    pass
+    unit_test(1)
 
 if __name__ == '__main__':
     main()
