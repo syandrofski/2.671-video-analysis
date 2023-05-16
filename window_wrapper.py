@@ -112,12 +112,13 @@ class WindowWrapper:
                  marker_buffer=0.025, hue_buffer=0.025, sat_buffer=0.25, val_buffer=0.25, visualize=True,
                  area_weight=0.2, color_weight=0.2, distance_weight=0.2, circularity_weight=0.2, filled_weight=0.2,
                  hyper=True, canny_thresh1=700, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
-                 error_threshold=0.5, debug=False):
+                 error_threshold=0.5, debug=False, frame_by_frame=False):
         self.path = fpath
         self.name = n
         self.vis = visualize
         self.parsing = True
         self.debug = debug
+        self.fbf = frame_by_frame
         self.augment_canny = hyper
         self.err_thresh = error_threshold
 
@@ -710,7 +711,8 @@ class WindowWrapper:
             self.current[self.hull, i] = w * h
 
     def replay(self):
-        while True:
+        key = ord('a')
+        while key != ord('x'):
             self.cap = cv2.VideoCapture(self.path)
             self.f_num = 1
             self.retv = True
@@ -720,10 +722,10 @@ class WindowWrapper:
                 if key == ord('t'):
                     key = ord('a')
                     time.sleep(0.01)
-                    while key != ord('t') and key != ord('p'):
+                    while key not in [ord('t'), ord('p'), ord('x')]:
                         key = check()
             key = check()
-            while key != ord('p'):
+            while key not in [ord('p'), ord('x')]:
                 key = check()
 
     def nf_replay(self):
@@ -731,6 +733,10 @@ class WindowWrapper:
         self.current = self.adv_struct[self.f_num]
         self.draw()
         self.f_num += 1
+        if self.fbf:
+            key = check()
+            while key not in [ord('t'), ord('p'), ord('x'), ord('n')]:
+                key = check()
 
     def export_data(self):
         return self.adv_struct

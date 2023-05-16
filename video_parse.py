@@ -14,21 +14,24 @@ from os.path import isfile
 
 def main():
 
-    for q in range(1, 2):
+    overwrite = True
+    play = False
+    fbf = False         # only valid when play is True, only occurs on replays
+    just_csv = False
+    save_data = True
+    track_points = 5
+    rsz = 0.85
+
+    for q in range(1, 11):
         num = q
-        target_data_path = 'jump_' + str(num)# + '-1'
+        target_data_path = 'opt_jump_' + str(num)# + '-1'
         target_data_path += '.npy'
         base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-        data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\'
+        data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\'
         new_jump = 'new_jump\\mp4\\new_jump_' + str(num) + '.mp4'
         opt_jump = 'opt_jump\\mp4\\opt_jump_' + str(num) + '.mp4'
         steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
         jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
-
-        overwrite = False
-        play = False
-        track_points = 3
-        rsz = 0.85
 
         chosen_path = base_path + opt_jump
 
@@ -57,7 +60,7 @@ def main():
                  marker_buffer=0.035, hue_buffer=0.075, sat_buffer=0.5, val_buffer=0.5, visualize=True,
                  area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
                  hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
-                 error_threshold=0.5, debug=False)
+                 error_threshold=0.5, debug=False, frame_by_frame=fbf)
 
             first_frame = True
             retv = _Frame.retv
@@ -105,8 +108,29 @@ def main():
 
             _Frame.interpolate()
             data = _Frame.export_data()
-            np.save(data_path + target_data_path, data)
+            if save_data:
+                np.save(data_path + target_data_path, data)
+                df_data = proc2.process_struct(data)
+                destination = data_path + target_data_path[:-4] + '.csv'
+                df_data.to_csv(destination)
+            else:
+                print('--------- DATA SAVE SKIPPED ---------')
         else:
+            print('NumPy file: ' + data_path + target_data_path + ' already exists!')
+            data = np.load(data_path + target_data_path)
+            destination = data_path + target_data_path[:-4] + '.csv'
+            if not isfile(destination) and just_csv and save_data:
+                df_data = proc2.process_struct(data)
+                df_data.to_csv(destination)
+            elif just_csv:
+                print('You have chosen just_csv: True, but the file either already exists or you have chosen save_data: False.')
+            else:
+                print('CSV file: ' + data_path + target_data_path + ' already exists!')
+            if play:
+                _Frame = ww.WindowWrapper(fpath=chosen_path, rsz_factor=rsz, frame_by_frame=fbf)
+                _Frame.set_data(data)
+                _Frame.replay()
+            '''
             data = np.load(data_path + target_data_path)
             interp_data = proc.angles_to_hor(data, [1])
             res = (interp_data[:, -1, 2:3] - interp_data[:, -1, 0:1]) % 360
@@ -121,5 +145,6 @@ def main():
             destination = data_path + target_data_path[:-4] + '.csv'
             if not isfile(destination):
                 export.to_csv(destination)
+            '''
 if __name__ == '__main__':
     main()
