@@ -7,6 +7,7 @@ import seaborn as sb
 import matplotlib.pyplot as plt
 from math import pi
 from curvefitting import cftool
+import scipy.stats as stats
 
 def compute_angle(pts1, pts2, pts3):
     vec12 = pts2 - pts1
@@ -265,6 +266,58 @@ def plot_scatter(_dir, gradient=False):
         # Display the plot for the current joint
         plt.show()
 
+def plot_hist(_dir):
+    # Read the CSV file
+    data = pd.read_csv(_dir)
+
+    # Group the data by joint
+    grouped_data = data.groupby('Joint')
+    colors = {'Ankle': 'red', 'Knee': 'blue', 'Hip': 'orange'}
+
+    result = {}
+
+    # Create a histogram for each joint
+    for joint, group in grouped_data:
+        # Get the angle data for the current joint
+        angles = group['Min Value']
+
+        # Create a new figure and axis for each joint
+        fig, ax = plt.subplots()
+
+        # Plot the histogram of angle data
+        n, bins, patches = ax.hist(angles, bins=8, color=colors[joint], edgecolor='black')
+
+        tx = ax.get_xlim()
+        ty = ax.get_ylim()
+
+        # Fit a normal distribution to the angle data
+        mu, sigma = stats.norm.fit(angles)
+        result[joint] = {'mean': mu, 'std': sigma}
+
+        # Plot the fitted normal distribution curve
+        #curve_range = range(int(min(angles)), int(max(angles)) + 1)
+        curve_range = np.linspace(int(min(angles)-10), int(max(angles)+10), 100)
+        curve = stats.norm.pdf(curve_range, mu, sigma) * len(angles) * (bins[1] - bins[0])
+        ax.plot(curve_range, curve, 'k-', linewidth=2)
+
+        ax.set_xlim(tx)
+        ax.set_ylim(ty)
+
+        '''
+        # Plot the histogram of angle data
+        ax.hist(angles, bins=8, color=colors[joint], edgecolor='black')
+        '''
+
+        # Set plot title and labels
+        #ax.set_title(f'{joint} - Angle Histogram')
+        ax.set_xlabel(f'{joint} Angle (deg)', fontsize=14)
+        ax.set_ylabel('Frequency', fontsize=14)
+
+        # Display the plot for the current joint
+        plt.show()
+
+    return result
+
 def unit_test(n, _dir):
     tgts = np.array([0, 1, 2])
     tgts += 1
@@ -317,7 +370,9 @@ def unit_test(n, _dir):
 def main():
     #joint_data = summary('C:\\Users\\spenc\\PycharmProjects\\2.671\\Final Data Files\\')
     #plot_all('C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\', single=0, gradient=True)
-    plot_scatter('C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\joint_data.csv')
+    #plot_scatter('C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\joint_data.csv')
+    res = plot_hist('C:\\Users\\spenc\\PycharmProjects\\2.671\\Final Data Files\\joint_data_pruned.csv')
+    print(res)
 
 if __name__ == '__main__':
     main()
