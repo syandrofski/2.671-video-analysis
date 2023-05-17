@@ -14,15 +14,15 @@ from os.path import isfile
 
 def main():
 
-    overwrite = False
-    play = True
-    fbf = True         # only valid when play is True, only occurs on replays
+    overwrite = True
+    play = False
+    fbf = False         # only valid when play is True, only occurs on replays
     just_csv = False
-    save_data = False
+    save_data = True
     track_points = 5
     rsz = 0.85
 
-    for q in range(1, 2):
+    for q in range(6, 7):
         num = q
         target_data_path = 'opt_jump_' + str(num)# + '-1'
         target_data_path += '.npy'
