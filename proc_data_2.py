@@ -44,6 +44,81 @@ def process_struct(adv_struct):
     return fdf
 
 
+def summary(_dir):
+    # Function to compute the gradient over time
+    def compute_gradient(data):
+        return np.gradient(data)
+
+    # Function to find the minimum value and frame number after the halfway point
+    def find_minimum(data):
+        halfway_idx = len(data) // 2
+        min_value = np.min(data[halfway_idx:])
+        min_frame = np.argmin(data[halfway_idx:]) + halfway_idx
+        return min_value, min_frame
+
+    # Function to find the maximum gradient value and frame number after the halfway point
+    def find_max_gradient(gradient):
+        halfway_idx = len(gradient) // 2
+        max_grad = np.max(gradient[halfway_idx:])
+        max_frame = np.argmax(gradient[halfway_idx:]) + halfway_idx
+        return max_grad, max_frame
+
+    # Directory path where the CSV files are located
+    directory = _dir
+
+    # Initialize a dictionary to store the computed values for each joint
+    joint_data = {
+        'Ankle': {'run': [], 'total_frames': [], 'min_value': [], 'min_frame': [], 'max_gradient': [], 'max_grad_frame': []},
+        'Knee': {'run': [], 'total_frames': [], 'min_value': [], 'min_frame': [], 'max_gradient': [], 'max_grad_frame': []},
+        'Hip': {'run': [], 'total_frames': [], 'min_value': [], 'min_frame': [], 'max_gradient': [], 'max_grad_frame': []}
+    }
+    run_num = 0
+    # Iterate over each CSV file in the directory
+    for filename in os.listdir(directory):
+        if filename.endswith('.csv'):
+            run_num += 1
+            print(filename)
+            filepath = os.path.join(directory, filename)
+            with open(filepath, 'r') as csvfile:
+                reader = csv.reader(csvfile)
+                next(reader)  # Skip header row
+                data = np.array([row[3:6] for row in reader], dtype=float)  # Read Ankle, Knee, Hip columns
+                print(data)
+
+            # Compute the gradient over time for each joint
+            gradients = np.apply_along_axis(compute_gradient, axis=0, arr=data)
+
+            # Find minimum value and frame number after the halfway point for each joint
+            for (i, (joint, joint_data_dict)) in enumerate(joint_data.items()):
+                min_value, min_frame = find_minimum(data[:, i])
+                joint_data_dict['run'].append(run_num)
+                joint_data_dict['total_frames'].append(data.shape[0])
+                joint_data_dict['min_value'].append(min_value)
+                joint_data_dict['min_frame'].append(min_frame)
+
+            # Find maximum gradient value and frame number after the halfway point for each joint
+            for (i, (joint, joint_data_dict)) in enumerate(joint_data.items()):
+                joint_data_dict['run'].append(run_num)
+                joint_data_dict['total_frames'].append(data.shape[0])
+                max_grad, max_grad_frame = find_max_gradient(gradients[:, i])
+                joint_data_dict['max_gradient'].append(max_grad)
+                joint_data_dict['max_grad_frame'].append(max_grad_frame)
+
+    # Export the computed values to a CSV file
+    csv_filename = 'joint_data.csv'
+    with open(csv_filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Run', 'Total Frames', 'Joint', 'Min Value', 'Min Frame', 'Max Gradient', 'Max Grad Frame'])
+        for joint, joint_data_dict in joint_data.items():
+            run = joint_data_dict['run']
+            total_frames = joint_data_dict['total_frames']
+            min_values = joint_data_dict['min_value']
+            min_frames = joint_data_dict['min_frame']
+            max_gradients = joint_data_dict['max_gradient']
+            max_grad_frames = joint_data_dict['max_grad_frame']
+            writer.writerows(zip(run, total_frames,[joint] * len(min_values), min_values, min_frames, max_gradients, max_grad_frames, total_frames))
+
+
 def unit_test(n):
     tgts = np.array([0, 1, 2])
     tgts += 1
@@ -79,12 +154,13 @@ def unit_test(n):
         plt.scatter(plot_points[:, 0], -1*plot_points[:, 1], c='red')#, c=['blue', 'red', 'yellow'])
         plt.gca().set_aspect('equal')
         plt.show()
+    elif n == 4:
+        summary('C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\')
     else:
         print('Please enter a valid unit test code.')
 
 def main():
-    unit_test(2)
-    unit_test(3)
+    unit_test(4)
 
 if __name__ == '__main__':
     main()
