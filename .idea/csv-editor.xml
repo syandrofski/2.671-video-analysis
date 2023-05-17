@@ -31,6 +31,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\Proc2 Data Files\opt_jump_5.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\Proc2 Data Files\opt_jump_6.csv">
           <value>
             <Attribute>

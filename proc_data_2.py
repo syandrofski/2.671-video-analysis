@@ -104,7 +104,7 @@ def summary(_dir, overwrite=False):
                 joint_data_dict['max_grad_frame'].append(max_grad_frame)
 
     # Export the computed values to a CSV file
-    csv_filename = 'Proc2 Data Files/joint_data.csv'
+    csv_filename = _dir + 'joint_data.csv'
     if not isfile(csv_filename) or overwrite:
         with open(csv_filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
@@ -120,9 +120,9 @@ def summary(_dir, overwrite=False):
     return joint_data
 
 
-def plot_all(single=0, gradient=False):
+def plot_all(_dir, single=0, gradient=False):
     # Directory path where the data files are located
-    directory = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\'
+    directory = _dir
 
     # Prefix to filter the data files
     file_prefix = 'opt_jump_'
@@ -178,7 +178,19 @@ def plot_all(single=0, gradient=False):
                             knee_angle.append(float(row[4]))  # Knee (deg)
                             hip_angle.append(float(row[5]))  # Hip (deg)
 
-            if single < 1 or single == i:
+                    if gradient:
+                        ankle_angle, knee_angle, hip_angle = np.gradient(ankle_angle), np.gradient(
+                            knee_angle), np.gradient(hip_angle)
+                    # Plot ankle angles
+                    plt.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity['Ankle'])
+
+                    # Plot knee angles
+                    plt.plot(time, knee_angle, color=colors['Knee'], alpha=opacity['Knee'])
+
+                    # Plot hip angles
+                    plt.plot(time, hip_angle, color=colors['Hip'], alpha=opacity['Hip'])
+
+            if single < 1:
                 if gradient:
                     ankle_angle, knee_angle, hip_angle = np.gradient(ankle_angle), np.gradient(knee_angle), np.gradient(hip_angle)
                 # Plot ankle angles
@@ -207,7 +219,7 @@ def plot_all(single=0, gradient=False):
     plt.show()
 
 
-def unit_test(n):
+def unit_test(n, _dir):
     tgts = np.array([0, 1, 2])
     tgts += 1
 
@@ -252,12 +264,13 @@ def unit_test(n):
         things = {'Knee_Min_Vals': np.array(min_vals), 'Frames': np.array(frames)}
         cftool(things)
     if n == 5:
-        plot_all(single=0, gradient=True)
+        plot_all(_dir, single=0, gradient=True)
     else:
         print('Please enter a valid unit test code.')
 
 def main():
-    unit_test(5)
+    #joint_data = summary('C:\\Users\\spenc\\PycharmProjects\\2.671\\Final Data Files\\')
+    plot_all('C:\\Users\\spenc\\PycharmProjects\\2.671\\Final Data Files\\', single=14, gradient=False)
 
 if __name__ == '__main__':
     main()
