@@ -253,6 +253,7 @@ class WindowWrapper:
             self.current[self.h, self.i_tracker] = temp_hsv[0]
             self.current[self.s, self.i_tracker] = temp_hsv[1]
             self.current[self.v, self.i_tracker] = temp_hsv[2]
+            self.current[self.err, self.i_tracker] = 0
 
             self.i_tracker = -1
             self.replace = False
@@ -367,7 +368,13 @@ class WindowWrapper:
             '''
 
     def update_color_threshold(self, i):
+        '''
+        if self.f_num > 5 and abs(self.last[self.h, i] - self.adv_struct[-2, self.h, i]) > 150:
+            temp_thresh = (self.adv_struct[-2, self.h, i], self.last[self.s, i], self.last[self.v, i])
+        else:
+        '''
         temp_thresh = (self.last[self.h, i], self.last[self.s, i], self.last[self.v, i])
+
         #if self.f_num > 10:
         #    temp_thresh = np.mean(self.adv_struct[-10:, self.h:self.v+1, i], axis=0).flatten()
         h_noise = int(self.h_buf*180)
@@ -746,6 +753,8 @@ class WindowWrapper:
         self.trackers = self.adv_struct.shape[2]
 
     def interpolate(self):
+        ct = 0
+        rec = 0
         for i in range(self.trackers):
             ct = 0
             rec = 0
@@ -770,3 +779,17 @@ class WindowWrapper:
                         self.adv_struct[k, self.err, i] = 0
                     ct = 0
                     rec = 0
+        if ct > 0:
+            x_rate = (self.adv_struct[j, self.x, i] - self.adv_struct[rec, self.x, i]) / float(j - rec)
+            y_rate = (self.adv_struct[j, self.y, i] - self.adv_struct[rec, self.y, i]) / float(j - rec)
+            xb = self.adv_struct[rec, self.x, i]
+            yb = self.adv_struct[rec, self.y, i]
+            tlxb = self.adv_struct[rec, self.tlx, i]
+            tlyb = self.adv_struct[rec, self.tly, i]
+            for k in range(rec + 1, j):
+                self.adv_struct[k, self.x, i] = xb + (k - rec) * x_rate
+                self.adv_struct[k, self.y, i] = yb + (k - rec) * y_rate
+                self.adv_struct[k, self.tlx, i] = tlxb + (k - rec) * x_rate
+                self.adv_struct[k, self.tly, i] = tlyb + (k - rec) * y_rate
+                self.adv_struct[k, self.buf, i] = self.m_buf
+                self.adv_struct[k, self.err, i] = 0

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -54,6 +55,37 @@ ax.set_aspect('equal')
 plt.show()
 '''
 
+def rename():
+    # Directory path where the files are located
+    directory = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\Final\\'
+
+    # New file name prefix
+    new_name_prefix = 'final_jump_'
+
+    # Starting index for renaming
+    start_index = 1
+
+    # Iterate over each file in the directory
+    for filename in os.listdir(directory):
+        # Get the current file's full path
+        file_path = os.path.join(directory, filename)
+
+        # Check if the path corresponds to a file
+        if os.path.isfile(file_path):
+            # Generate the new file name with the desired prefix and sequential index
+            new_filename = f'{new_name_prefix}{start_index}{os.path.splitext(filename)[1]}'
+            #new_filename = 'final_jump_' + str(start_index) + '.mov'
+
+            # Construct the new file's full path
+            new_file_path = os.path.join(directory, new_filename)
+
+
+            # Rename the file by moving it to the new path
+            os.rename(file_path, new_file_path)
+
+            # Increment the index for the next file
+            start_index += 1
+
 
 def interpolate(data):
     x = 0
@@ -86,7 +118,11 @@ print(np.transpose(a), '\n')
 print(np.transpose(interpolate(a)))
 '''
 
+'''
 data = np.load("C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\jump_1.npy")
 print(data[20, :, 0], '\n')
 data2 = np.load("C:\\Users\\spenc\\PycharmProjects\\2.671\\New Data Files\\Knee\\jump_5.npy")
 print(data2[20, :, 0])
+'''
+
+#rename()

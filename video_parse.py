@@ -19,21 +19,25 @@ def main():
     fbf = False         # only valid when play is True, only occurs on replays
     just_csv = False
     save_data = True
+    db = False
     track_points = 5
     rsz = 0.85
 
-    for q in range(6, 7):
+    for q in range(26, 31):
         num = q
         target_data_path = 'opt_jump_' + str(num)# + '-1'
         target_data_path += '.npy'
         base_path = 'C:\\Users\\spenc\\Dropbox (MIT)\\2.671 Go Forth and Measure\\'
-        data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\'
+        proc2_data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\'
+        final_data_path = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Final Data Files\\'
         new_jump = 'new_jump\\mp4\\new_jump_' + str(num) + '.mp4'
         opt_jump = 'opt_jump\\mp4\\opt_jump_' + str(num) + '.mp4'
+        final_jump = '\\Final\\mp4\\final_jump_' + str(num) + '.mp4'
         steven = 'Steven\\mp4\\steven' + str(num) + '.mp4'
         jackson = 'Jackson\\mp4\\jackson' + str(num) + '.mp4'
 
-        chosen_path = base_path + opt_jump
+        chosen_path = base_path + final_jump
+        data_path = final_data_path
 
         if not isfile(data_path + target_data_path) or overwrite:
 
@@ -57,10 +61,10 @@ def main():
             '''
 
             _Frame = ww.WindowWrapper('frame', targets=track_points, rsz_factor=rsz, fpath=chosen_path,
-                 marker_buffer=0.035, hue_buffer=0.075, sat_buffer=0.5, val_buffer=0.5, visualize=True,
-                 area_weight=0.75, color_weight=0, distance_weight=0.25, circularity_weight=0, filled_weight=0,
+                 marker_buffer=0.03, hue_buffer=0.05, sat_buffer=0.15, val_buffer=0.15, visualize=True,
+                 area_weight=0.5, color_weight=0, distance_weight=0.5, circularity_weight=0, filled_weight=0,
                  hyper=True, canny_thresh1=750, canny_thresh2=751, canny_apertureSize=5, canny_L2threshold=True,
-                 error_threshold=0.5, debug=False, frame_by_frame=fbf)
+                 error_threshold=0.5, debug=db, frame_by_frame=fbf)
 
             first_frame = True
             retv = _Frame.retv
@@ -98,7 +102,7 @@ def main():
                 else:
                     # Quit if user presses q
                     key = ww.check()
-            print('done!')
+            print(target_data_path + ' done!')
             key = ww.check()
             while key != ord('p') and key != ord('x'):
                 key = ww.check()

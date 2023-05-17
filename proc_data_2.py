@@ -120,7 +120,7 @@ def summary(_dir, overwrite=False):
     return joint_data
 
 
-def plot_all(single=0):
+def plot_all(single=0, gradient=False):
     # Directory path where the data files are located
     directory = 'C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\'
 
@@ -128,10 +128,15 @@ def plot_all(single=0):
     file_prefix = 'opt_jump_'
 
     # Colors and opacity for plotting
-    colors = {'Ankle': 'red', 'Knee': 'blue', 'Hip': 'black'}
-    opacity = 0.5
+    colors = {'Ankle': 'red', 'Knee': 'blue', 'Hip': 'orange'}
+    opacity = {'Ankle': 0.35, 'Knee': 0.3, 'Hip': 0.6}
 
     ct = 0
+
+    time = []
+    ankle_angle = []
+    knee_angle = []
+    hip_angle = []
 
     # Iterate over each file in the directory
     for i, filename in enumerate(os.listdir(directory)):
@@ -173,29 +178,26 @@ def plot_all(single=0):
                             knee_angle.append(float(row[4]))  # Knee (deg)
                             hip_angle.append(float(row[5]))  # Hip (deg)
 
-                    # Plot ankle angles
-                    plt.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity)
+            if single < 1 or single == i:
+                if gradient:
+                    ankle_angle, knee_angle, hip_angle = np.gradient(ankle_angle), np.gradient(knee_angle), np.gradient(hip_angle)
+                # Plot ankle angles
+                plt.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity['Ankle'])
 
-                    # Plot knee angles
-                    plt.plot(time, knee_angle, color=colors['Knee'], alpha=opacity)
+                # Plot knee angles
+                plt.plot(time, knee_angle, color=colors['Knee'], alpha=opacity['Knee'])
 
-                    # Plot hip angles
-                    plt.plot(time, hip_angle, color=colors['Hip'], alpha=opacity)
-
-                if single < 1:
-                    # Plot ankle angles
-                    plt.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity)
-
-                    # Plot knee angles
-                    plt.plot(time, knee_angle, color=colors['Knee'], alpha=opacity)
-
-                    # Plot hip angles
-                    plt.plot(time, hip_angle, color=colors['Hip'], alpha=opacity)
+                # Plot hip angles
+                plt.plot(time, hip_angle, color=colors['Hip'], alpha=opacity['Hip'])
 
     # Set plot title and labels
-    plt.title('Angle Measurements Over Time')
     plt.xlabel('Time (ms)')
-    plt.ylabel('Angle (deg)')
+    if gradient:
+        plt.title('Angular Velocity Measurements Over Time')
+        plt.ylabel('Angular Velocity (deg/ms)')
+    else:
+        plt.title('Angle Measurements Over Time')
+        plt.ylabel('Angle (deg)')
 
     # Set legend
     legend_labels = ['Ankle', 'Knee', 'Hip']
@@ -250,7 +252,7 @@ def unit_test(n):
         things = {'Knee_Min_Vals': np.array(min_vals), 'Frames': np.array(frames)}
         cftool(things)
     if n == 5:
-        plot_all(single=7)
+        plot_all(single=0, gradient=True)
     else:
         print('Please enter a valid unit test code.')
 
