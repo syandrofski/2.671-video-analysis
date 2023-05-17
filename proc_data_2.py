@@ -129,7 +129,10 @@ def plot_all(_dir, single=0, gradient=False):
 
     # Colors and opacity for plotting
     colors = {'Ankle': 'red', 'Knee': 'blue', 'Hip': 'orange'}
-    opacity = {'Ankle': 0.35, 'Knee': 0.3, 'Hip': 0.6}
+    if single < 1:
+        opacity = {'Ankle': 0.35, 'Knee': 0.3, 'Hip': 0.6}
+    else:
+        opacity = {'Ankle': 1, 'Knee': 1, 'Hip': 1}
 
     ct = 0
 
@@ -137,6 +140,9 @@ def plot_all(_dir, single=0, gradient=False):
     ankle_angle = []
     knee_angle = []
     hip_angle = []
+
+    # Create subplots for each joint angle
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(5.4, 4.8), sharex='all')
 
     # Iterate over each file in the directory
     for i, filename in enumerate(os.listdir(directory)):
@@ -162,6 +168,7 @@ def plot_all(_dir, single=0, gradient=False):
             else:
                 if single == ct:
                     filepath = os.path.join(directory, filename)
+                    print(filename)
                     with open(filepath, 'r') as csvfile:
                         reader = csv.reader(csvfile)
                         next(reader)  # Skip header row
@@ -182,42 +189,81 @@ def plot_all(_dir, single=0, gradient=False):
                         ankle_angle, knee_angle, hip_angle = np.gradient(ankle_angle), np.gradient(
                             knee_angle), np.gradient(hip_angle)
                     # Plot ankle angles
-                    plt.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity['Ankle'])
+                    ax1.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity['Ankle'])
 
                     # Plot knee angles
-                    plt.plot(time, knee_angle, color=colors['Knee'], alpha=opacity['Knee'])
+                    ax2.plot(time, knee_angle, color=colors['Knee'], alpha=opacity['Knee'])
 
                     # Plot hip angles
-                    plt.plot(time, hip_angle, color=colors['Hip'], alpha=opacity['Hip'])
+                    ax3.plot(time, hip_angle, color=colors['Hip'], alpha=opacity['Hip'])
 
             if single < 1:
                 if gradient:
                     ankle_angle, knee_angle, hip_angle = np.gradient(ankle_angle), np.gradient(knee_angle), np.gradient(hip_angle)
                 # Plot ankle angles
-                plt.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity['Ankle'])
+                ax1.plot(time, ankle_angle, color=colors['Ankle'], alpha=opacity['Ankle'])
 
                 # Plot knee angles
-                plt.plot(time, knee_angle, color=colors['Knee'], alpha=opacity['Knee'])
+                ax2.plot(time, knee_angle, color=colors['Knee'], alpha=opacity['Knee'])
 
                 # Plot hip angles
-                plt.plot(time, hip_angle, color=colors['Hip'], alpha=opacity['Hip'])
+                ax3.plot(time, hip_angle, color=colors['Hip'], alpha=opacity['Hip'])
 
     # Set plot title and labels
-    plt.xlabel('Time (ms)')
+    plt.xlabel('Time (ms)', fontsize=14)
     if gradient:
-        plt.title('Angular Velocity Measurements Over Time')
-        plt.ylabel('Angular Velocity (deg/ms)')
+        #plt.title('Angular Velocity Measurements Over Time')
+        ax2.set_ylabel('Angular Velocity (deg/ms)', fontsize=14)
     else:
-        plt.title('Angle Measurements Over Time')
-        plt.ylabel('Angle (deg)')
+        #plt.title('Angle Measurements Over Time')
+        ax2.set_ylabel('Angle (deg)', fontsize=14)
 
     # Set legend
-    legend_labels = ['Ankle', 'Knee', 'Hip']
-    plt.legend(legend_labels)
+    legend_labels_ax1 = ['Ankle']
+    legend_labels_ax2 = ['Knee']
+    legend_labels_ax3 = ['Hip']
+    ax1.legend(legend_labels_ax1)
+    ax2.legend(legend_labels_ax2)
+    ax3.legend(legend_labels_ax3)
+
+    plt.tight_layout()
 
     # Display the plot
     plt.show()
 
+
+def plot_scatter(_dir, gradient=False):
+    # Read the CSV file
+    data = pd.read_csv(_dir)
+
+    # Group the data by joint
+    grouped_data = data.groupby('Joint')
+
+    # Define colors for each joint
+    colors = {'Ankle': 'red', 'Knee': 'blue', 'Hip': 'orange'}
+
+    # Create a scatterplot for each joint
+    for joint, group in grouped_data:
+        # Get the Min Value and Total Frames values for the current joint
+        min_value = group['Min Value']
+        total_frames = group['Total Frames']
+        times = total_frames.to_numpy() * 1000.0 / 240.0
+
+        # Create a new figure and axis for each joint
+        fig, ax = plt.subplots()
+
+        # Plot the Min Value by Total Frames pairs with the specified color
+        ax.scatter(times, min_value, color=colors[joint])
+
+        # Set plot title and labels
+        #ax.set_title(f'{joint} - Min Value by Total Frames')
+        if joint == 'Hip' and 'Proc2' in _dir:
+            plt.yticks([125.2, 125.4, 125.6, 125.8, 126.0, 126.2, 126.4, 126.6, 126.8])
+        ax.set_xlabel('Time (ms)', fontsize = 14)
+        ax.set_ylabel(f'{joint} Minimum Angle (deg)', fontsize = 14)
+
+        # Display the plot for the current joint
+        plt.show()
 
 def unit_test(n, _dir):
     tgts = np.array([0, 1, 2])
@@ -270,7 +316,8 @@ def unit_test(n, _dir):
 
 def main():
     #joint_data = summary('C:\\Users\\spenc\\PycharmProjects\\2.671\\Final Data Files\\')
-    plot_all('C:\\Users\\spenc\\PycharmProjects\\2.671\\Final Data Files\\', single=14, gradient=False)
+    #plot_all('C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\', single=0, gradient=True)
+    plot_scatter('C:\\Users\\spenc\\PycharmProjects\\2.671\\Proc2 Data Files\\joint_data.csv')
 
 if __name__ == '__main__':
     main()
